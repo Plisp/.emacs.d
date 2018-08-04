@@ -1,2 +1,2 @@
-# .emacs.d
-Emacs init files
+# emacs.d
+My emacs config (a work in progress)
