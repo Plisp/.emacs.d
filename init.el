@@ -92,7 +92,8 @@ point reaches the beginning or end of the buffer, stop there."
 							vc-make-backup-files t
 							version-control t
 							bookmark-default-file (edir ".bookmarks.el")
-							column-number-mode t)
+							column-number-mode t
+							fill-column 80)
 ;; Y-or-n is much faster
 (fset 'yes-or-no-p 'y-or-n-p)
 ;; Simplify mode line symbols
@@ -192,12 +193,10 @@ point reaches the beginning or end of the buffer, stop there."
 ;; Advanced undo
 (use-package undo-tree		;TODO set bindings
   :diminish)
-;; Line wrap TODO move to org setup
+;; Wrap lines at fill-column (as opposed to window edge) - very useful when editing
 (use-package visual-fill-column
-  :hook (visual-fill-column-mode . visual-line-mode)
-  :config
-  (setq fill-column 78)
-  (global-visual-fill-column-mode 1))
+  :hook ((visual-line-mode . visual-fill-column-mode)
+				 (text-scale-mode . visual-fill-column-adjust)))
 ;; Show position in buffer
 (use-package nyan-mode
   :hook (org-mode prog-mode)
@@ -343,9 +342,11 @@ point reaches the beginning or end of the buffer, stop there."
          ("C-c y r" . yas-reload-all)
 				 (:map yas-minor-mode-map
 							 ("C-i" . yas-next-field-or-maybe-expand)))
-	:config
-	(use-package yasnippet-snippets
-		:defer 1))
+	:config)
+;; The actual snippets used
+(use-package yasnippet-snippets
+	:after yasnippet
+	:defer 1)
 ;; Assembly files
 (use-package asm-mode
 	:mode ("\\.s\\'"))
@@ -389,6 +390,7 @@ point reaches the beginning or end of the buffer, stop there."
 
 ;;; Org mode ;;;
 (use-package org
+	:hook ((org-mode . (lambda () (progn (visual-line-mode) (org-indent-mode)))))
   :mode ("\\.txt\\'" . org-mode)
   :bind (("C-c a" . org-agenda)
 				 (:map org-mode-map
@@ -396,6 +398,8 @@ point reaches the beginning or end of the buffer, stop there."
 							 ("C-c c" . org-capture)
 							 ("C-c b" . org-switch)))
   :config
+	;; Change line wrap
+	(setq visual-fill-column-width 130)
   (setq org-log-done 'time
 				org-list-demote-modify-bullet t
 				org-list-allow-alphabetical t
