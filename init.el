@@ -31,7 +31,7 @@
 
 ;; Package archives
 (setq package-archives '(("melpa" . "https://melpa.org/packages/")
-												 ("gnu" . "https://elpa.gnu.org/packages/")))
+                         ("gnu" . "https://elpa.gnu.org/packages/")))
 
 ;; Package configuration management
 (unless (package-installed-p 'use-package)
@@ -43,9 +43,9 @@
 
 ;; Auto compile init files TODO fix warnings
 (use-package auto-compile
-	:config
-	(auto-compile-on-load-mode)
-	(setq load-prefer-newer t))
+  :config
+  (auto-compile-on-load-mode)
+  (setq load-prefer-newer t))
 
 ;;; Utilities ;;;
 
@@ -109,10 +109,10 @@ point reaches the beginning or end of the buffer, stop there."
 (global-set-key (kbd "M-`") 'jump-to-mark)
 
 (defun exchange-point-and-mark-no-activate ()
-	"Identical to \\[exchange-point-and-mark] but will not activate the region."
-	(interactive)
-	(exchange-point-and-mark)
-	(deactivate-mark nil))
+  "Identical to \\[exchange-point-and-mark] but will not activate the region."
+  (interactive)
+  (exchange-point-and-mark)
+  (deactivate-mark nil))
 
 (define-key global-map [remap exchange-point-and-mark] 'exchange-point-and-mark-no-activate)
 
@@ -123,15 +123,15 @@ point reaches the beginning or end of the buffer, stop there."
 
 ;; Normally local variables
 (setq-default ring-bell-function 'ignore
-							version-control t
+              version-control t
               fill-column 80)
 
 (setq inhibit-startup-screen t
-			delete-old-versions t
-			auto-save-default nil
-			backup-directory-alist `(("." . ,(edir "backups")))
-			vc-make-backup-files t
-			column-number-mode t)
+      delete-old-versions t
+      auto-save-default nil
+      backup-directory-alist `(("." . ,(edir "backups")))
+      vc-make-backup-files t
+      column-number-mode t)
 
 ;; Y-or-n is much faster
 (fset 'yes-or-no-p 'y-or-n-p)
@@ -149,7 +149,7 @@ point reaches the beginning or end of the buffer, stop there."
 
 ;; Help with keybindings
 (use-package which-key
-	:diminish
+  :diminish
   :config
   (which-key-mode))
 
@@ -157,11 +157,11 @@ point reaches the beginning or end of the buffer, stop there."
 (use-package projectile
   :init
   (setq projectile-completion-system 'ivy
-				projectile-enable-caching t)
-	:bind-keymap ("C-c p" . projectile-command-map)
-	:config
+        projectile-enable-caching t)
+  :bind-keymap ("C-c p" . projectile-command-map)
+  :config
   (projectile-mode)
-	(use-package projectile-ripgrep))
+  (use-package projectile-ripgrep))
 
 ;; Edit grep results directly
 (use-package wgrep)
@@ -173,7 +173,7 @@ point reaches the beginning or end of the buffer, stop there."
 ;; Multiple cursors TODO learn to use
 (use-package multiple-cursors
   :config
-	(global-set-key (kbd "C-<") 'mc/mark-previous-like-this)
+  (global-set-key (kbd "C-<") 'mc/mark-previous-like-this)
   (global-set-key (kbd "C->") 'mc/mark-next-like-this)
   (global-set-key (kbd "C-+") 'mc/mark-next-like-this)
   (global-set-key (kbd "C-c C-<") 'mc/mark-all-like-this)
@@ -189,14 +189,14 @@ point reaches the beginning or end of the buffer, stop there."
   :config
   (ivy-mode)
   (setq enable-recursive-minibuffers t
-				ivy-use-virtual-buffers t
-				ivy-height 10
-				ivy-wrap t
-				ivy-display-style 'fancy
-				ivy-re-builders-alist '((swiper . ivy--regex-plus)
-																(t . ivy--regex-fuzzy))
-				ivy-initial-inputs-alist nil
-				ivy-count-format ""))
+        ivy-use-virtual-buffers t
+        ivy-height 10
+        ivy-wrap t
+        ivy-display-style 'fancy
+        ivy-re-builders-alist '((swiper . ivy--regex-plus)
+                                (t . ivy--regex-fuzzy))
+        ivy-initial-inputs-alist nil
+        ivy-count-format ""))
 
 ;; Fuzzy ivy
 (use-package flx)
@@ -205,31 +205,31 @@ point reaches the beginning or end of the buffer, stop there."
 (use-package counsel
   :diminish
   :bind (("M-x" . counsel-M-x)
-				 ("C-x C-f" . counsel-find-file)
-				 ("C-c g" . counsel-git-grep)		; Fast grep
-         ("C-c j" . counsel-git)				; Find files
-				 ("C-r" . counsel-rg)
-				 ("M-Y" . counsel-yank-pop)
+         ("C-x C-f" . counsel-find-file)
+         ("C-c g" . counsel-git-grep)   ; Fast grep
+         ("C-c j" . counsel-git)        ; Find files
+         ("C-r" . counsel-rg)
+         ("M-Y" . counsel-yank-pop)
          :map minibuffer-local-map
          ("C-r" . counsel-minibuffer-add))
   :config
   (setq counsel-grep-base-command "rg -i -M 120 --no-heading --line-number '%s' %s"
-				counsel-rg-base-command "rg -i -M 120 --no-heading --line-number %s ."))
+        counsel-rg-base-command "rg -i -M 120 --no-heading --line-number %s ."))
 
 ;; Searching using ivy
 (use-package swiper
   :bind
   ("C-s" . swiper)
-	:config
-	(setq case-fold-search t))
+  :config
+  (setq case-fold-search t))
 
 ;; Fast jumping to places on window
 (use-package avy
-  :bind (("M-s" . avy-goto-char)				; I didn't often use M-s
-				 ("M-g M-g" . avy-goto-line)))
+  :bind (("M-s" . avy-goto-char)        ; I didn't often use M-s
+         ("M-g M-g" . avy-goto-line)))
 
 (use-package ace-window
-	:bind ("M-o" . ace-window))
+  :bind ("M-o" . ace-window))
 
 (add-hook 'fancy-startup-screen 'emacs-startup-hook)
 
@@ -244,14 +244,13 @@ point reaches the beginning or end of the buffer, stop there."
 
 ;;; Editing ;;;
 (setq-default x-stretch-cursor t
-							delete-selection-mode t
-							indent-tabs-mode t
-							tab-width 2
-							transient-mark-mode t
-							scroll-preserve-screen-position t
-							indicate-empty-lines t
-							global-font-lock-mode t
-							tab-always-indent 'complete)
+              delete-selection-mode t
+              tab-width 2
+              transient-mark-mode t
+              scroll-preserve-screen-position t
+              indicate-empty-lines t
+              global-font-lock-mode t
+              tab-always-indent 'complete)
 
 ;; Hippie expand > dabbrev (no company backend unfortunately)
 (global-set-key (kbd "M-/") 'hippie-expand)
@@ -267,12 +266,12 @@ point reaches the beginning or end of the buffer, stop there."
 (use-package volatile-highlights)
 
 ;; Advanced undo
-(use-package undo-tree)		;TODO set bindings
+(use-package undo-tree)   ;TODO set bindings
 
 ;; Wrap lines at fill-column (as opposed to window edge)
 (use-package visual-fill-column
   :hook ((visual-line-mode . visual-fill-column-mode)
-				 (text-scale-mode . visual-fill-column-adjust)))
+         (text-scale-mode . visual-fill-column-adjust)))
 
 ;; Show position in buffer
 (use-package nyan-mode
@@ -285,9 +284,9 @@ point reaches the beginning or end of the buffer, stop there."
   :config
   (global-nlinum-mode)
   (setq nlinum-highlight-current-line t
-				nlinum-format (concat "%"
-															(number-to-string (ceiling (log (max 1 (/ (buffer-size) 80)) 10)))
-															"d\u2502")))
+        nlinum-format (concat "%"
+                              (number-to-string (ceiling (log (max 1 (/ (buffer-size) 80)) 10)))
+                              "d\u2502")))
 
 (use-package markdown-mode :mode (".md" ".markdown"))
 (use-package json-mode :mode (".json" ".imp"))
@@ -345,23 +344,23 @@ point reaches the beginning or end of the buffer, stop there."
   :config
   (sp-local-pair '(emacs-lisp-mode) "'" "'" :actions nil)
   (sp-with-modes '(c-mode c++-mode)
-		(sp-local-pair "{" nil :post-handlers '(("||\n[i]" "RET")))
-		(sp-local-pair "/*" "*/" :post-handlers '((" | " "SPC") ("* ||\n[i]" "RET")))))
+    (sp-local-pair "{" nil :post-handlers '(("||\n[i]" "RET")))
+    (sp-local-pair "/*" "*/" :post-handlers '((" | " "SPC") ("* ||\n[i]" "RET")))))
 
 ;; Spell checking
 (use-package flyspell
-	:diminish "flyspell"
+  :diminish "flyspell"
   :bind ("<f7>" . flyspell-buffer)
   :hook ((org-mode . flyspell-mode)
-				 (text-mode . flyspell-mode)
-				 (prog-mode . flyspell-prog-mode))
+         (text-mode . flyspell-mode)
+         (prog-mode . flyspell-prog-mode))
   :config
   (setq flyspell-issue-welcome-flag nil)
   (if (executable-find "aspell")
-  	  (progn
-  			(setq ispell-program-name "aspell")
-  			(setq ispell-extra-args '("--sug-mode=ultra")))
-  	(setq ispell-progsram-name "ispell")))
+      (progn
+        (setq ispell-program-name "aspell")
+        (setq ispell-extra-args '("--sug-mode=ultra")))
+    (setq ispell-progsram-name "ispell")))
 
 ;; Use ivy matching
 (use-package flyspell-correct-ivy
@@ -374,13 +373,13 @@ point reaches the beginning or end of the buffer, stop there."
 (setq-default ediff-split-window-function 'split-window-horizontally)
 
 (setq vc-follow-symlinks t
-			compilation-ask-about-save nil
-			compilation-always-kill t
-			compilation-scroll-output 'first-error)
+      compilation-ask-about-save nil
+      compilation-always-kill t
+      compilation-scroll-output 'first-error)
 
 ;; Rainbow parentheses
 (use-package rainbow-delimiters
-	:hook (prog-mode . rainbow-delimiters-mode))
+  :hook (prog-mode . rainbow-delimiters-mode))
 
 ;; Symbol highlighting+editing
 (use-package symbol-overlay
@@ -391,8 +390,8 @@ point reaches the beginning or end of the buffer, stop there."
 
 ;; Code folding
 (use-package origami
-	:init
-	(setq origami-show-fold-header t)
+  :init
+  (setq origami-show-fold-header t)
   :hook (prog-mode . origami-mode)
   :bind (:map origami-mode-map
               ("C-c o :" . origami-recursively-toggle-node)
@@ -406,82 +405,82 @@ point reaches the beginning or end of the buffer, stop there."
 ;; Magit TODO learn
 (use-package magit
   :defer t
-	:init
-	(setq magit-completing-read-function 'ivy-completing-read)
-	:config)
+  :init
+  (setq magit-completing-read-function 'ivy-completing-read)
+  :config)
 
 ;; Display git status
 (use-package git-gutter)
 
 ;; Completion
 (use-package company
-	:init
-	(add-to-list 'completion-styles 'initials t)
-	(setq company-idle-delay 0
+  :init
+  (add-to-list 'completion-styles 'initials t)
+  (setq company-idle-delay 0
         company-tooltip-align-annotations t
-				company-minimum-prefix-length 3
-				company-dabbrev-other-buffers 'all)
-	:bind (("C-M-/" . company-complete)
-				 (:map company-active-map
-							 ("C-n" . company-select-next)
-							 ("C-p" . company-select-previous)
-							 ("M-/" . company-other-backend)
-							 ("C-o" . company-filter-candidates)))
+        company-minimum-prefix-length 3
+        company-dabbrev-other-buffers 'all)
+  :bind (("C-M-/" . company-complete)
+         (:map company-active-map
+               ("C-n" . company-select-next)
+               ("C-p" . company-select-previous)
+               ("M-/" . company-other-backend)
+               ("C-o" . company-filter-candidates)))
   :config
-	(global-company-mode))
+  (global-company-mode))
 
 ;; Snippets
 (use-package yasnippet
-	:diminish "yasnippet"
-	:hook (prog-mode . yas-minor-mode)
+  :diminish "yasnippet"
+  :hook (prog-mode . yas-minor-mode)
   :bind (("C-c y i" . yas-insert-snippet)
          ("C-c y h" . yas-describe-tables)
          ("C-c y r" . yas-reload-all)
-				 (:map yas-minor-mode-map
-							 ("C-i" . yas-next-field-or-maybe-expand))))
+         (:map yas-minor-mode-map
+               ("C-i" . yas-next-field-or-maybe-expand))))
 
 ;; Linting
 (use-package flycheck
-	:diminish "flycheck"
-	:hook (prog-mode . flycheck-mode)
-	:config
-	(setq-default flycheck-disabled-checkers '(emacs-lisp-checkdoc)))
+  :diminish "flycheck"
+  :hook (prog-mode . flycheck-mode)
+  :config
+  (setq-default flycheck-disabled-checkers '(emacs-lisp-checkdoc)))
 
 ;; Color based on error status
 
 (use-package flycheck-color-mode-line
   :after flycheck
-	:config
-	(flycheck-color-mode-line-mode))
+  :config
+  (flycheck-color-mode-line-mode))
 
 ;; The actual snippets used
 (use-package yasnippet-snippets
-	:after yasnippet
-	:defer 1)
+  :after yasnippet
+  :defer 1)
 
 ;; Assembly files
 (use-package asm-mode
-	:mode ("\\.s\\'"))
+  :mode ("\\.s\\'"))
 
 ;; Cmake files
 (use-package cmake-mode
-	:ensure t
-	:mode ("CMakeLists.txt" ".cmake")
-	:hook (cmake-mode . (lambda () (add-to-list 'company-backends 'company-cmake)))
-	:config
-	(use-package cmake-font-lock
-		:ensure t
-		:defer t		:commands (cmake-font-lock-activate)
-		:hook (cmake-mode . (lambda ()
-													(cmake-font-lock-activate)
-													(font-lock-add-keywords
-													 nil '(("\\<\\(FIXME\\|TODO\\)"
-																	1 font-lock-warning-face t)))))))
+  :ensure t
+  :mode ("CMakeLists.txt" ".cmake")
+  :hook (cmake-mode . (lambda () (add-to-list 'company-backends 'company-cmake)))
+  :config
+  (use-package cmake-font-lock
+    :ensure t
+    :defer t    :commands (cmake-font-lock-activate)
+    :hook (cmake-mode . (lambda ()
+                          (cmake-font-lock-activate)
+                          (font-lock-add-keywords
+                           nil '(("\\<\\(FIXME\\|TODO\\)"
+                                  1 font-lock-warning-face t)))))))
 
 ;; Better c++14 highlighting
 (use-package modern-cpp-font-lock
-	:diminish
-	:hook (c++-mode .  modern-c++-font-lock-global-mode))
+  :diminish
+  :hook (c++-mode .  modern-c++-font-lock-global-mode))
 
 ;; Keep keyword font lock
 (add-hook 'prog-mode-hook
@@ -489,8 +488,8 @@ point reaches the beginning or end of the buffer, stop there."
             ;; Highlighting in cmake-mode this way interferes with font lock
             (when (not (derived-mode-p 'cmake-mode))
               (font-lock-add-keywords nil
-																			'(("\\<\\(FIXME\\|TODO\\)"
-																				 1 font-lock-warning-face t))))))
+                                      '(("\\<\\(FIXME\\|TODO\\)"
+                                         1 font-lock-warning-face t))))))
 
 ;; flash matching parentheses
 (add-hook 'after-init-hook 'show-paren-mode)
@@ -507,23 +506,23 @@ point reaches the beginning or end of the buffer, stop there."
 
 ;;; Org mode ;;;
 (use-package org
-	:init
-	(setq org-log-done 'time
-				org-list-demote-modify-bullet t
-				org-list-allow-alphabetical t
-				org-src-tab-acts-natively t
-				org-agenda-files (list "~/org/work.org"
-															 "~/org/misc.org"))
-	:hook ((org-mode . (lambda () (progn (visual-line-mode) (org-indent-mode)))))
+  :init
+  (setq org-log-done 'time
+        org-list-demote-modify-bullet t
+        org-list-allow-alphabetical t
+        org-src-tab-acts-natively t
+        org-agenda-files (list "~/org/work.org"
+                               "~/org/misc.org"))
+  :hook ((org-mode . (lambda () (progn (visual-line-mode) (org-indent-mode)))))
   :mode ("\\.txt\\'" . org-mode)
   :bind (("C-c a" . org-agenda)
-				 (:map org-mode-map
-							 ("C-c l" . org-store-link)
-							 ("C-c c" . org-capture)
-							 ("C-c b" . org-switch)))
+         (:map org-mode-map
+               ("C-c l" . org-store-link)
+               ("C-c c" . org-capture)
+               ("C-c b" . org-switch)))
   :config
-	;; Change line wrap
-	(setq visual-fill-column-width 130))
+  ;; Change line wrap
+  (setq visual-fill-column-width 130))
 
 ;; fancy bullets
 (use-package org-bullets
@@ -531,7 +530,7 @@ point reaches the beginning or end of the buffer, stop there."
   :hook (org-mode . org-bullets-mode))
 
 (use-package zpresent
-	:config)
+  :config)
 
 ;;; Programming languages ;;;
 
@@ -541,91 +540,91 @@ point reaches the beginning or end of the buffer, stop there."
 ;;; Asthetics ;;;
 
 (setq default-frame-alist '((font . "Hack")
-														(tool-bar-lines . 0)
-														(menu-bar-lines . 0)
+                            (tool-bar-lines . 0)
+                            (menu-bar-lines . 0)
                             (horizontal-scroll-bar . nil)
-														(vertical-scroll-bars . nil)
-														(background-mode . 'dark)
-														(fullscreen . maximized)
-														(left-fringe . 2)
-														(right-fringe . 5)))
+                            (vertical-scroll-bars . nil)
+                            (background-mode . 'dark)
+                            (fullscreen . maximized)
+                            (left-fringe . 2)
+                            (right-fringe . 5)))
 
 ;; Remove obnoxious line between windows
 (set-face-foreground 'vertical-border "#073642" nil)
 
 ;; Fix funky mode line problems with solarized package and powerline
 (set-face-attribute 'mode-line nil :underline nil :overline nil :box nil
-										:foreground "#999" :background "#222")
+                    :foreground "#999" :background "#222")
 
 (use-package solarized-theme
   :config
   (setq solarized-high-contrast-mode-line t
-				solarized-use-variable-pitch t
-				solarized-scale-org-headlines nil
-				solarized-distinct-fringe-background t)
+        solarized-use-variable-pitch t
+        solarized-scale-org-headlines nil
+        solarized-distinct-fringe-background t)
   (load-theme 'solarized-dark t))
 
 (use-package powerline
-	:init
-	(setq powerline-default-separator 'arrow)
-	(defun my-powerline-theme ()
-		(interactive)
-		(setq-default mode-line-format
-									'("%e"
-										(:eval
-										 (let* ((active (powerline-selected-window-active))
-														(mode-line-buffer-id (if active 'mode-line-buffer-id 'mode-line-buffer-id-inactive))
-														(mode-line (if active 'mode-line 'mode-line-inactive))
-														(face0 (if active 'powerline-active0 'powerline-inactive0))
-														(face1 (if active 'powerline-active1 'powerline-inactive1))
-														(face2 (if active 'powerline-active2 'powerline-inactive2))
+  :init
+  (setq powerline-default-separator 'arrow)
+  (defun my-powerline-theme ()
+    (interactive)
+    (setq-default mode-line-format
+                  '("%e"
+                    (:eval
+                     (let* ((active (powerline-selected-window-active))
+                            (mode-line-buffer-id (if active 'mode-line-buffer-id 'mode-line-buffer-id-inactive))
+                            (mode-line (if active 'mode-line 'mode-line-inactive))
+                            (face0 (if active 'powerline-active0 'powerline-inactive0))
+                            (face1 (if active 'powerline-active1 'powerline-inactive1))
+                            (face2 (if active 'powerline-active2 'powerline-inactive2))
 
-														(separator-left (intern (format "powerline-%s-%s"
-																														(powerline-current-separator)
-																														(car powerline-default-separator-dir))))
+                            (separator-left (intern (format "powerline-%s-%s"
+                                                            (powerline-current-separator)
+                                                            (car powerline-default-separator-dir))))
 
-														(separator-right (intern (format "powerline-%s-%s"
-																														 (powerline-current-separator)
-																														 (cdr powerline-default-separator-dir))))
+                            (separator-right (intern (format "powerline-%s-%s"
+                                                             (powerline-current-separator)
+                                                             (cdr powerline-default-separator-dir))))
 
-														(lhs (list (powerline-raw "%*" face0 'l)
-																			 (powerline-buffer-id `(mode-line-buffer-id ,face0) 'l)
-																			 (when powerline-display-buffer-size
-																				 (powerline-buffer-size face0))
+                            (lhs (list (powerline-raw "%*" face0 'l)
+                                       (powerline-buffer-id `(mode-line-buffer-id ,face0) 'l)
+                                       (when powerline-display-buffer-size
+                                         (powerline-buffer-size face0))
                                        (powerline-vc face0 'r)
-																			 (funcall separator-left face0 face1)
+                                       (funcall separator-left face0 face1)
                                        (powerline-major-mode face1 'l)
-																			 (powerline-process face1)
+                                       (powerline-process face1)
                                        (powerline-narrow face1 'l)
-																			 (powerline-raw " " face1)
-																			 (funcall separator-left face1 face2)
-																			 (powerline-raw "[" face2 'l)
+                                       (powerline-raw " " face1)
+                                       (funcall separator-left face1 face2)
+                                       (powerline-raw "[" face2 'l)
                                        (when (bound-and-true-p nyan-mode)
-																				 (powerline-raw (list (nyan-create)) face2))
-																			 (powerline-raw "]" face2)))
+                                         (powerline-raw (list (nyan-create)) face2))
+                                       (powerline-raw "]" face2)))
 
-														(rhs (list (powerline-raw " ;) " face2)
-																			 (funcall separator-right face2 face1)
-																			 (powerline-raw " " face1)
-																			 (powerline-minor-modes face1 'l)
-																			 (powerline-raw "  " face1)
+                            (rhs (list (powerline-raw " ;) " face2)
+                                       (funcall separator-right face2 face1)
+                                       (powerline-raw " " face1)
+                                       (powerline-minor-modes face1 'l)
+                                       (powerline-raw "  " face1)
                                        (funcall separator-right face1 face0)
                                        (unless window-system
-																				 (powerline-raw (char-to-string #xe0a1) face0 'l))
-																			 (powerline-raw "%o" face0 'l)
-																			 (powerline-raw "ln %l" face0 'l)
-																			 (powerline-raw " : " face0)
-																			 (powerline-raw "col %c" face0)
-																			 (when powerline-display-mule-info
-																				 (powerline-raw mode-line-mule-info face0 'l))
-																			 (powerline-fill face0 0))))
+                                         (powerline-raw (char-to-string #xe0a1) face0 'l))
+                                       (powerline-raw "%o" face0 'l)
+                                       (powerline-raw "ln %l" face0 'l)
+                                       (powerline-raw " : " face0)
+                                       (powerline-raw "col %c" face0)
+                                       (when powerline-display-mule-info
+                                         (powerline-raw mode-line-mule-info face0 'l))
+                                       (powerline-fill face0 0))))
 
-											 (concat (powerline-render lhs)
-															 (powerline-fill face2 (powerline-width rhs))
-															 (powerline-render rhs)))))))
+                       (concat (powerline-render lhs)
+                               (powerline-fill face2 (powerline-width rhs))
+                               (powerline-render rhs)))))))
   :custom-face
   (powerline-active1 ((t (:background "#2d353a" :foreground "#ccc"))))
-	(powerline-active2 ((t (:background "#5c656b" :foreground "#eee"))))
+  (powerline-active2 ((t (:background "#5c656b" :foreground "#eee"))))
   :config
   (my-powerline-theme))
 
