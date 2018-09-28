@@ -180,6 +180,7 @@ point reaches the beginning or end of the buffer, stop there."
 ;;; External packages
 
 (require 'dired+)
+                                        ;(set-face-attribute)
 
 ;; Better window resizing https://github.com/ramnes/move-border
 (require 'move-border)
@@ -197,12 +198,13 @@ point reaches the beginning or end of the buffer, stop there."
 
 ;;; end of: External packages
 
-;;; Important packages
+;;; Important packages and settings
 
 (setq-default ring-bell-function 'ignore
               version-control t)
 
 (setq delete-old-versions t
+      save-silently t
       auto-save-default nil
       backup-directory-alist `(("." . ,(edir "backups")))
       vc-make-backup-files t
@@ -347,7 +349,6 @@ instead."
         company-tooltip-align-annotations t
         company-minimum-prefix-length 3
         company-dabbrev-other-buffers 'all)
-
   :bind (("C-M-/" . company-complete)
          :map company-active-map
          ;; Change 'input' to company candidates (not input-method)
@@ -500,14 +501,12 @@ instead."
 ;; Spell checking
 (use-package flyspell
   :init
-  (setq flyspell-issue-welcome-flag nil)
-
   (if (executable-find "aspell")
       (progn
         (setq ispell-program-name "aspell")
         (setq ispell-extra-args '("--sug-mode=ultra")))
-    (setq ispell-progsram-name "ispell"))
-
+    (setq ispell-progsram-name "ispell")
+    (setq flyspell-issue-welcome-flag nil))
   :diminish "Flyspell"
   :bind ("<f7>" . flyspell-buffer)
   :hook ((org-mode . flyspell-mode)
@@ -551,7 +550,6 @@ instead."
 (use-package origami
   :init
   (setq origami-show-fold-header t)
-
   :hook (prog-mode . origami-mode)
   :bind (:map origami-mode-map
               ("C-c o :" . origami-recursively-toggle-node)
@@ -561,12 +559,6 @@ instead."
               ("C-c o u" . origami-undo)
               ("C-c o U" . origami-redo)
               ("C-c o C-r" . origami-reset)))
-
-(use-package sr-speedbar
-  :init
-  (setq speedbar-show-unknown-files t
-        speedbar-use-images t
-        sr-speedbar-right-side nil))
 
 ;; Magit TODO setup
 (use-package magit
@@ -613,27 +605,24 @@ instead."
   (add-to-list 'semantic-default-submodes 'global-semantic-idle-summary-mode)
   (add-to-list 'semantic-default-submodes 'global-semantic-highlight-func-mode)
   (use-package stickyfunc-enhance)
-  (require 'semantic/sb)
-  ;; Fix buggy completion when semantic is enabled https://github.com/syl20bnr/spacemacs/issues/11058
-  (defun et/semantic-remove-hooks ()
-    (remove-hook 'completion-at-point-functions
-                 'semantic-analyze-completion-at-point-function)
-    (remove-hook 'completion-at-point-functions
-                 'semantic-analyze-notc-completion-at-point-function)
-    (remove-hook 'completion-at-point-functions
-                 'semantic-analyze-nolongprefix-completion-at-point-function))
-
   :hook ((c-mode-common . semantic-mode)
-         (semantic-mode . et/semantic-remove-hooks))
+         (semantic-mode . semantic-remove-hooks))
   :bind (:map semantic-mode-map
               ("C-c s j" . semantic-ia-fast-jump)
               ("C-c s s" . semantic-ia-show-summary)
               ("C-c s d" . semantic-ia-show-doc)
               ("C-c s r" . semantic-symref))
   :config
+  (require 'semantic/sb)
   (semanticdb-enable-gnu-global-databases 'c-mode t)
   (semanticdb-enable-gnu-global-databases 'c++-mode t)
   (semantic-add-system-include "/usr/include/boost" 'c++-mode))
+
+;; Fix buggy completion when semantic is enabled https://github.com/syl20bnr/spacemacs/issues/11058
+(defun semantic-remove-hooks ()
+  (remove-hook 'completion-at-point-functions 'semantic-analyze-completion-at-point-function)
+  (remove-hook 'completion-at-point-functions 'semantic-analyze-notc-completion-at-point-function)
+  (remove-hook 'completion-at-point-functions 'semantic-analyze-nolongprefix-completion-at-point-function))
 
 ;; Assembly files
 (use-package asm-mode
@@ -660,12 +649,12 @@ instead."
 
 ;; highlight lines
 (add-hook 'prog-mode-hook 'hl-line-mode)
-
+;; Display function in mode line
+(add-hook 'prog-mode-hook 'which-function-mode)
 ;; Delete useless whitespace
 (add-hook 'before-save-hook (lambda () (delete-trailing-whitespace)))
+;; Automatically make scripts executable
 (add-hook 'after-save-hook #'executable-make-buffer-file-executable-if-script-p)
-
-(add-hook 'prog-mode-hook 'which-function-mode)
 
 ;;; end of: Programming
 
@@ -693,19 +682,25 @@ instead."
         org-ellipsis " ⬎"
         org-todo-keywords '((sequence "TODO(t)" "IN-PROGRESS(i)" "|" "DONE(d)" "CANCELLED(c)"))
         org-todo-keyword-faces '(("TODO" . org-warning)
-                                 ("IN-PROGRESS" . (:inherit 'org-warning :foreground "blue"))
-                                 ("CANCELLED" . (:inherit 'org-level-1 :foreground "yellow"))))
+                                 ("IN-PROGRESS" . (:inherit org-warning :foreground "blue"))
+                                 ("CANCELLED" . (:inherit org-level-1 :foreground "yellow"))))
   :custom-face
   (org-done ((t (:family "DejaVu Sans Mono" :height 135 :bold t))))
   (org-warning ((t (:family "DejaVu Sans Mono" :height 135 :bold t))))
   (variable-pitch ((t (:family "DejaVu Sans" :height 130))))
   :hook ((org-mode . org-indent-mode)
          (org-mode . visual-line-mode)
-         (text-mode . orgstruct-mode))
+         (text-mode . orgstruct-mode)
+         (org-after-todo-state-change . org-archive-done))
   :bind (("C-c a" . org-agenda)
          ("C-c l" . org-store-link)
          ("C-c c" . org-capture)
          ("C-c b" . org-switchb)))
+
+;; Archive completed items automatically
+(defun org-archive-done ()
+  (when (org-entry-is-done-p)
+    (org-archive-subtree-default)))
 
 ;; fancy bullets
 (use-package org-bullets
@@ -764,7 +759,7 @@ instead."
                             (menu-bar-lines . 0)
                             (horizontal-scroll-bar . nil)
                             (vertical-scroll-bars . nil)
-                            (background-mode . 'dark)
+                            (background-mode . dark)
                             (fullscreen . maximized)
                             (left-fringe . 2)
                             (right-fringe . 5)))
@@ -819,12 +814,9 @@ instead."
 
                             (lhs (list (powerline-raw "%*" face0 'l)
                                        (powerline-buffer-id `(mode-line-buffer-id ,face0) 'l)
-
                                        (when powerline-display-buffer-size
                                          (powerline-buffer-size face0 'l))
-
                                        (powerline-vc face0 'r)
-
                                        (when (and (buffer-file-name (current-buffer)) vc-mode)
                                          (if (and window-system (not powerline-gui-use-vcs-glyph))
                                              (powerline-raw
@@ -837,42 +829,36 @@ instead."
                                         (all-the-icons-icon-for-mode
                                          major-mode
                                          :face face1 :height 0.9 :v-adjust 0.01) face1 'l)
-
                                        (powerline-major-mode face1 'l)
-
                                        (when (and (not (equal major-mode 'org-mode))
                                                   (boundp 'which-function-mode)
                                                   which-function-mode)
                                          (powerline-raw which-func-format face1 'l))
-
                                        (powerline-process face1)
                                        (powerline-narrow face1 'l)
                                        (powerline-raw " " face1)
-                                       (funcall separator-left face1 face2)
-                                       (powerline-raw "[" face2 'l)
 
+                                       (funcall separator-left face1 face2)
+
+                                       (powerline-raw "[" face2 'l)
                                        (when (bound-and-true-p nyan-mode)
                                          (powerline-raw (list (nyan-create)) face2))
-
                                        (powerline-raw "] " face2)
                                        (powerline-raw "%o" face2 'r)))
 
                             (rhs (list (funcall separator-right face2 face1)
                                        (powerline-raw " " face1)
                                        (powerline-minor-modes face1 'r)
+
                                        (funcall separator-right face1 face0)
 
                                        (unless window-system
                                          (powerline-raw (char-to-string #xe0a1) face0 'l))
-
                                        (powerline-raw "%l:%c " face0 'l)
                                        (powerline-raw (sky-color-clock))
-
                                        (when powerline-display-mule-info
                                          (powerline-raw mode-line-mule-info face0 'l))
-
                                        (powerline-fill face0 0))))
-
                        (concat (powerline-render lhs)
                                (powerline-fill face2 (powerline-width rhs))
                                (powerline-render rhs)))))))
