@@ -1,4 +1,4 @@
-;;; C/C++ IDE
+;;;; C/C++ IDE
 
 (use-package cc-mode
   :bind ("C-M-o" . ff-find-other-file)
@@ -65,7 +65,8 @@
   :config
   (flycheck-ycmd-setup))
 
-;; This one's new TODO keep an eye out for features
+;; As of writing this only provides the capability to find references,
+;; which gtags + universal-ctags does not handle well (even with pygments)
 (use-package ivy-ycmd
   :after (ycmd ivy))
 

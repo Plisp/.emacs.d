@@ -22,29 +22,30 @@
 
 ;; Garbage collection should happen later
 (setq gc-cons-threshold 64000000)
-(add-hook 'after-init-hook #'(lambda () (setq gc-cons-threshold 800000)))
 
+;; Package management TODO switch to straight.el
 (require 'package)
+
 ;; Packages should not be activated
 (unless package--initialized
   (package-initialize))
 
 ;; Package archives
-(setq package-archives '(("gnu"       . "http://elpa.gnu.org/packages/")
-                         ("melpa"     . "http://melpa.org/packages/")
+(setq package-archives '(("melpa"     . "http://melpa.org/packages/")
+                         ("gnu"       . "http://elpa.gnu.org/packages/")
                          ("marmalade" . "http://marmalade-repo.org/packages/")))
 
 ;; Package configuration management
 (unless (package-installed-p 'use-package)
-  (package-refresh-contents)
+  ;(package-refresh-contents)
   (package-install 'use-package))
 
 (require 'use-package)
-;; Always install if not already
+
+;; Always install packages if not already available
 (setq use-package-always-ensure t)
 
 ;;; end of: Initial setup
-
 ;;; Useful little snippets
 
 ;; Use utf-8
@@ -60,6 +61,7 @@
 (when (display-graphic-p)
   (setq x-select-request-type '(UTF8_STRING COMPOUND_TEXT TEXT STRING)))
 
+;; Used several times
 (eval-and-compile
   (define-inline edir (path)
     (expand-file-name path user-emacs-directory)))
@@ -79,7 +81,7 @@
 
 ;; Unmap TAB and RET from C-i, C-m (legacy bindings)
 (defun unmap-keys (frame)
-  "Unmap"
+  "Unmap C-m from RET and C-i from TAB"
   (interactive)
   ;; Never try to remap in tty - I only use emacsclient with GUI anyways
   (when (daemonp)
@@ -92,13 +94,8 @@
 
 ;; Stolen from emacs redux
 (defun smarter-move-beginning-of-line (arg)
-  "Move point back to indentation of beginning of line.
-Move point to the first non-whitespace character on this line.
-If point is already there, move to the beginning of the line.
-Effectively toggle between the first non-whitespace character and
-the beginning of the line.
-If ARG is not nil or 1, move forward ARG - 1 lines first.  If
-point reaches the beginning or end of the buffer, stop there."
+  "Effectively toggle between the first non-whitespace character and
+the beginning of the line."
   (interactive "^p")
   (setq arg (or arg 1))
 
@@ -113,55 +110,41 @@ point reaches the beginning or end of the buffer, stop there."
       (move-beginning-of-line 1))))
 
 ;; remap C-a to `smarter-move-beginning-of-line'
-(global-set-key [remap move-beginning-of-line] 'smarter-move-beginning-of-line)
+(define-key global-map [remap move-beginning-of-line] 'smarter-move-beginning-of-line)
 
 (defun push-mark-no-activate ()
-  "Pushes `point' to `mark-ring' and does not activate the region
-   Equivalent to \\[set-mark-command] when \\[transient-mark-mode] is disabled"
+  "Pushes point to mark-ring and does not activate the region
+   Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
   (interactive)
   (push-mark (point) t nil)
   (message "Pushed mark to ring"))
 
+;; remap C-m to `push-mark-no-activate'
 (global-set-key (kbd "<C-m>") 'push-mark-no-activate)
 
 (defun jump-to-mark ()
-  "Jumps to the local mark, respecting the `mark-ring' order.
-`  This is the same as using \\[set-mark-command] with the prefix argument."
+  "Jumps to the local mark, respecting the mark-ring order.
+`  This is the same as using `set-mark-command' with the prefix argument."
   (interactive)
   (set-mark-command 1))
 
+;; remap M-m (`back-to-indentation' functionality is provided by C-a) to `jump-to-mark'
 (global-set-key (kbd "M-m") 'jump-to-mark)
 
 (defun exchange-point-and-mark-no-activate ()
-  "Identical to \\[exchange-point-and-mark] but will not activate the region."
+  "Identical to `exchange-point-and-mark' but will not activate the region."
   (interactive)
   (exchange-point-and-mark)
   (deactivate-mark nil))
 
+;; remap `exchange-point-and-mark' to `exchange-point-and-mark-no-activate'
 (define-key global-map [remap exchange-point-and-mark] 'exchange-point-and-mark-no-activate)
 
 ;; Don't use backspace
 (global-set-key (kbd "C-S-d") 'backward-delete-char-untabify)
 
-(defun clean-kill-word (irrelevant-kill-region-error-status)
-  "Delete sequence separators such as spaces and +"
-  (if (string= (string (following-char))
-               (string (preceding-char)))
-      (delete-char 1)
-    nil))
-
-(advice-add 'kill-word :after 'clean-kill-word)
-
-;; Need smartparens when using M-:
-(add-hook 'eval-expression-minibuffer-setup-hook #'smartparens-mode)
-
-;; Familiar keybind for buffer switching
-(defun switch-to-previous-buffer ()
-  "Toggle back and forth between the most recent two buffers."
-  (interactive)
-  (switch-to-buffer (other-buffer (current-buffer) 1)))
-
-(global-set-key [C-tab] 'switch-to-previous-buffer)
+;; Need smartparens when using minibuffer evaluation
+(add-hook 'eval-expression-minibuffer-setup-hook 'smartparens-mode)
 
 ;; C-m is easier to remember as a mark command
 (global-set-key (kbd "C-j") 'newline-and-indent)
@@ -170,34 +153,42 @@ point reaches the beginning or end of the buffer, stop there."
 (global-set-key (kbd "M-z") 'zap-up-to-char)
 (global-set-key (kbd "M-Z") 'zap-to-char)
 
-;; C-z is used for my personal prefix
+;; C-z is my personal prefix TODO write bindings
 (global-unset-key (kbd "C-z"))
 (defalias 'z-keymap (make-sparse-keymap))
 (define-key global-map "\C-z" 'z-keymap)
 
 ;;; end of: Useful little snippets
-
 ;;; External packages
 
+;; Better dired
 (require 'dired+)
-                                        ;(set-face-attribute)
 
-;; Better window resizing https://github.com/ramnes/move-border
+;; Better window resizing: https://github.com/ramnes/move-border
 (require 'move-border)
 (global-set-key (kbd "M-S-<up>") 'move-border-up)
 (global-set-key (kbd "M-S-<down>") 'move-border-down)
 (global-set-key (kbd "M-S-<left>") 'move-border-left)
 (global-set-key (kbd "M-S-<right>") 'move-border-right)
 
-;; Weather https://github.com/zk-phi/sky-color-clock
-(require 'sky-color-clock)
-;; Change to your region's latitude
-(sky-color-clock-initialize -34)
-;; Sign up to get API key and download country codes
-(sky-color-clock-initialize-openweathermap-client "ce527c830c7fee7d3b0efc7e4c84da58" 6619279)
+;; ;; Get weather status in mode line: https://github.com/zk-phi/sky-color-clock
+;; (require 'sky-color-clock)
+;; ;; Change to your region's latitude
+;; (sky-color-clock-initialize -34)
+;; ;; Sign up to get API key and download country codes
+;; (sky-color-clock-initialize-openweathermap-client "ce527c830c7fee7d3b0efc7e4c84da58" 6619279)
+
+;; Flip between buffers fast: https://github.com/jrosdahl/iflipb
+(require 'iflipb)
+(global-set-key [M-tab] 'iflipb-next-buffer)
+(global-set-key [M-iso-lefttab] 'iflipb-previous-buffer)
+
+;; i3 integration: https://github.com/vava/i3-emacs
+(require 'i3)
+(require 'i3-integration)
+(i3-one-window-per-frame-mode-on)
 
 ;;; end of: External packages
-
 ;;; Important packages and settings
 
 (setq-default ring-bell-function 'ignore
@@ -213,16 +204,18 @@ point reaches the beginning or end of the buffer, stop there."
 ;; Y-or-n is much faster
 (fset 'yes-or-no-p 'y-or-n-p)
 
-;; Wrap words at window edge
-(global-visual-line-mode)
+;; ;; Wrap words at window edge
+;; (global-visual-line-mode)
 
 ;; Simplify mode line symbols
 (use-package diminish :demand t
   :config
-  (diminish 'auto-revert-mode))
+  (diminish 'auto-revert-mode)
+	(diminish 'eldoc-mode))
 
 ;; Very Large Files
-(use-package vlf)
+(use-package vlf
+  :init (require 'vlf-setup))
 
 ;; Help with finding cursor
 (use-package beacon
@@ -231,8 +224,8 @@ point reaches the beginning or end of the buffer, stop there."
 
 ;; Color code highlighting
 (use-package rainbow-mode
-  :config
-  (rainbow-turn-on))
+	:diminish
+  :hook (prog-mode . rainbow-mode))
 
 ;; Help with keybindings
 (use-package which-key
@@ -259,39 +252,34 @@ point reaches the beginning or end of the buffer, stop there."
 
 ;; Regex matching for everything
 (use-package ivy
+	:diminish
   :init (ivy-mode)
   (use-package ivy-hydra)
   (setq enable-recursive-minibuffers t
         ivy-use-virtual-buffers t
-        ivy-height 10
+        ivy-height 12
         ivy-wrap t
         ivy-display-style 'fancy
         ivy-initial-inputs-alist nil
-        ivy-count-format ""
         ivy-re-builders-alist '((swiper . ivy--regex-plus)
                                 (t . ivy--regex-fuzzy))))
 
-;; Fuzzy ivy
-(use-package flx)
+;; ;; another fuzzy package (not quite good enough yet)
+;; (use-package prescient
+;;   :init (setq prescient-save-file (edir "presc-save.el"))
+;;   :config (prescient-persist-mode))
 
-;; another fuzzy package
-(use-package prescient
-  :init
-  (setq prescient-save-file (edir "presc-save.el"))
-  :config (prescient-persist-mode))
+;; (use-package ivy-prescient
+;;   :after (ivy prescient)
+;;   :config (ivy-prescient-mode)
+;;   (add-to-list 'ivy-prescient-excluded-commands 'counsel-rg)
+;;   (add-to-list 'ivy-prescient-filter-method-keys '("C-c C-f" (literal+initialism . fuzzy))))
 
-(use-package ivy-prescient
-  :after (ivy prescient)
-  :config (ivy-prescient-mode)
-  (add-to-list 'ivy-prescient-excluded-commands 'counsel-rg)
-  (add-to-list 'ivy-prescient-filter-method-keys '("C-c C-f" (literal+initialism . fuzzy))))
-
-;; Completion for commands (note I don't want to replace all of them)
+;; Minibuffer completion (note I don't want to replace all the functions)
 (use-package counsel
-  :init
-  (setq counsel-rg-base-command "rg -i -M 120 --no-heading --line-number %s .")
+  :init (setq counsel-rg-base-command "rg -i -M 120 --no-heading --line-number %s .")
   :bind (("C-x C-f" . counsel-find-file)
-         ("C-c j" . counsel-git)        ; Find files
+         ("C-c j" . counsel-git)
          ("C-c u" . counsel-unicode-char)
          ("C-c r" . mu-counsel-search-project)
          ("M-Y" . counsel-yank-pop)
@@ -313,24 +301,40 @@ instead."
                  (error default-directory)))))
     (funcall 'counsel-rg initial-input dir)))
 
-;; I prefer smex to counsel
+;; Better fuzzy matching for smex
+(use-package flx
+  :config
+  (use-package flx-ido)
+  (flx-ido-mode))
+
+;; Counsel-M-x unnecessarily obscures my window
 (use-package smex
+  :after flx
+  :init (smex-initialize)
   :bind (("M-x" . smex)
          ("M-X" . smex-major-mode-commands)))
 
-;; Searching using ivy
+;; Searching with regex and context
 (use-package swiper
+  :after ivy
   :init (setq case-fold-search t)
-  :bind ("C-S-s" . swiper-all))
+  ;; These keys are C-Shift-s and M-Shift-s respectively
+  :bind (("C-S-s" . swiper)
+         ("M-S" . swiper-all)))
+
+;; Fuzzy isearching
+(use-package flx-isearch
+  :after flx
+  :bind (("C-s" . flx-isearch-forward)
+         ("C-r" . flx-isearch-backward)))
 
 ;; Project management
 (use-package projectile
-  :init
+  :init (projectile-mode)
   (use-package projectile-ripgrep)
   (setq projectile-completion-system 'ivy
         projectile-enable-caching t)
-  :bind-keymap ("C-c p" . projectile-command-map)
-  :config (projectile-mode))
+  :bind-keymap ("C-c p" . projectile-command-map))
 
 ;; Better projectile integration
 (use-package counsel-projectile
@@ -342,51 +346,45 @@ instead."
 
 ;; Completion
 (use-package company
+	:diminish
   :init
-  (add-to-list 'completion-styles 'initials t)
   (setq company-idle-delay 0
         company-show-numbers t
         company-tooltip-align-annotations t
         company-minimum-prefix-length 3
-        company-dabbrev-other-buffers 'all)
+        company-dabbrev-other-buffers 'all
+        completion-styles '(initials basic partial-completion))
+
   :bind (("C-M-/" . company-complete)
          :map company-active-map
-         ;; Change 'input' to company candidates (not input-method)
+         ;; Change 'input' to company candidates (as opposed to input-method)
          ("C-\\" . company-other-backend)
          ("C-d" . company-show-doc-buffer)
          ("C-o" . company-filter-candidates)
          ("M-." . company-show-location))
-
   :config (global-company-mode))
 
 ;; Popup tips for company
 (use-package company-quickhelp
-  :init (setq company-quickhelp-delay 0.8)
+  :init (setq company-quickhelp-delay 0.5)
   :config (company-quickhelp-mode))
 
-(use-package company-prescient
-  :after (company prescient)
-  :config (company-prescient-mode))
+;; (use-package company-prescient
+;;   :after (company prescient)
+;;   :config (company-prescient-mode))
 
 ;; Fast jumping to places on window
 (use-package avy
   :init (setq avy-timeout-seconds 0.2)
-  :bind ("M-g M-g" . avy-goto-end-of-line))
-
-(use-package ace-isearch
-  :config (global-ace-isearch-mode)
-  (setq ace-isearch-function 'avy-goto-char
-        ace-isearch-function-from-isearch 'ace-isearch-swiper-from-isearch
-        ace-isearch-use-jump 'printing-char
-        ace-isearch-use-fallback-function t
-        ace-isearch-fallback-function 'swiper))
+  :bind (("M-g M-g" . avy-goto-end-of-line)
+         ("M-c" . avy-goto-char)))
 
 ;; Fast window switching
 (use-package ace-window
   :init (setq aw-keys '(?a ?s ?d ?j ?k ?l))
   :bind ("M-o" . ace-window))
 
-;; https://github.com/abo-abo/hydra
+;; https://github.com/abo-abo/hydra TODO configure and write hydras
 (use-package hydra
   :init
   (setq hydra-verbose t))
@@ -399,7 +397,6 @@ instead."
   :bind ("M-`" . shell-pop))
 
 ;;; end of: Important packages
-
 ;;; Editing
 
 (setq-default indent-tabs-mode nil
@@ -419,15 +416,21 @@ instead."
 ;; Hippie expand > dabbrev (no company backend unfortunately)
 (global-set-key (kbd "M-/") 'hippie-expand)
 
-(setq hippie-expand-try-functions-list
-      '(try-complete-file-name-partially
-        try-complete-file-name
-        try-expand-dabbrev
-        try-expand-dabbrev-all-buffers
-        try-expand-dabbrev-from-kill))
+(setq hippie-expand-try-functions-list '(try-complete-file-name-partially
+                                         try-complete-file-name
+                                         try-expand-dabbrev
+                                         try-expand-dabbrev-all-buffers
+                                         try-expand-dabbrev-from-kill))
+
+;; Support for some important filetypes
+(use-package asm-mode :mode ("\\.s\\'"))
+(use-package markdown-mode :mode (".md" ".markdown"))
+(use-package json-mode :mode (".json" ".imp"))
 
 ;; Show highlighted region
-(use-package volatile-highlights)
+(use-package volatile-highlights
+	:diminish
+  :config (volatile-highlights-mode))
 
 ;; Advanced undo
 (use-package undo-tree
@@ -439,9 +442,6 @@ instead."
 (use-package nyan-mode
   :hook (org-mode prog-mode)
   :config (nyan-toggle-wavy-trail))
-
-(use-package markdown-mode :mode (".md" ".markdown"))
-(use-package json-mode :mode (".json" ".imp"))
 
 ;; Parentheses management
 (use-package smartparens
@@ -490,6 +490,7 @@ instead."
               ("C-c \"" . wrap-with-double-quotes)
               ("C-c _"  . wrap-with-underscores)
               ("C-c `"  . wrap-with-back-quotes))
+
   :config (show-smartparens-global-mode)
   (sp-local-pair '(emacs-lisp-mode) "'" "'" :actions nil)
   (sp-local-pair '(emacs-lisp-mode) "`" "`" :actions nil)
@@ -501,26 +502,26 @@ instead."
 ;; Spell checking
 (use-package flyspell
   :init
+  (setq flyspell-issue-welcome-flag nil)
   (if (executable-find "aspell")
       (progn
         (setq ispell-program-name "aspell")
         (setq ispell-extra-args '("--sug-mode=ultra")))
-    (setq ispell-progsram-name "ispell")
-    (setq flyspell-issue-welcome-flag nil))
+    (message "Install aspell and dictionary"))
+
   :diminish "Flyspell"
   :bind ("<f7>" . flyspell-buffer)
   :hook ((org-mode . flyspell-mode)
          (text-mode . flyspell-mode)
          (prog-mode . flyspell-prog-mode)))
 
-;; honestly not as useful as I thought - there aren't ever that many corrections
+;; Correct mistakes with ivy
 (use-package flyspell-correct-ivy
   :after flyspell ivy
   :bind (:map flyspell-mode-map
               ("C-;" . flyspell-correct-previous-word-generic)))
 
 ;;; end of: Editing
-
 ;;; Programming
 
 (setq-default ediff-split-window-function 'split-window-horizontally
@@ -552,13 +553,12 @@ instead."
   (setq origami-show-fold-header t)
   :hook (prog-mode . origami-mode)
   :bind (:map origami-mode-map
-              ("C-c o :" . origami-recursively-toggle-node)
-              ("C-c o a" . origami-toggle-all-nodes)
-              ("C-c o t" . origami-toggle-node)
+              ("C-c o t" . origami-recursively-toggle-node)
+              ("C-c o T" . origami-toggle-all-nodes)
               ("C-c o o" . origami-show-only-node)
-              ("C-c o u" . origami-undo)
-              ("C-c o U" . origami-redo)
-              ("C-c o C-r" . origami-reset)))
+              ("C-c o /" . origami-undo)
+              ("C-c o ?" . origami-redo))
+  :config (global-origami-mode))
 
 ;; Magit TODO setup
 (use-package magit
@@ -568,6 +568,7 @@ instead."
 
 ;; Display git status
 (use-package git-gutter
+	:diminish
   :init (setq git-gutter:update-interval 5)
   :config (global-git-gutter-mode))
 
@@ -577,7 +578,7 @@ instead."
   ;; Snippets
   (use-package yasnippet-snippets)
   (yas-global-mode)
-  ;; Use this while in company-active-map
+  ;; Use this to expand snippets while in company-active-map
   (add-to-list 'hippie-expand-try-functions-list 'yas-hippie-try-expand)
   :bind (("C-c y i" . yas-insert-snippet)
          ("C-c y h" . yas-describe-tables)
@@ -587,46 +588,53 @@ instead."
 (use-package flycheck
   :init
   (setq-default flycheck-disabled-checkers '(emacs-lisp-checkdoc))
-  (setq flycheck-display-errors-function 'ignore)
-  (use-package flycheck-tip))
+  (setq flycheck-indication-mode 'right-fringe)
+  :hook (prog-mode . flycheck-mode))
 
-;; Color based on error status
-
-(use-package flycheck-color-mode-line
+;; Show tips for errors
+(use-package flycheck-tip
   :after flycheck
-  :config (flycheck-color-mode-line-mode))
+  ;; Show nothing in echo area
+  :init (setq flycheck-display-errors-function 'ignore)
+  :bind (:map flycheck-mode-map
+              ("C-c ! n" . flycheck-tip-cycle)
+              ("C-c ! p" . flycheck-tip-cycle-reverse)))
+
+;; ;; Color the mode line based on error status
+;; (use-package flycheck-color-mode-line
+;;   :after flycheck
+;;   :config (flycheck-color-mode-line-mode))
 
 (use-package semantic
   :defer t
   :init
+  (use-package stickyfunc-enhance)
   (add-to-list 'semantic-default-submodes 'global-semanticdb-minor-mode)
   (add-to-list 'semantic-default-submodes 'global-semantic-idle-scheduler-mode)
   (add-to-list 'semantic-default-submodes 'global-semantic-stickyfunc-mode)
   (add-to-list 'semantic-default-submodes 'global-semantic-idle-summary-mode)
   (add-to-list 'semantic-default-submodes 'global-semantic-highlight-func-mode)
-  (use-package stickyfunc-enhance)
+
   :hook ((c-mode-common . semantic-mode)
          (semantic-mode . semantic-remove-hooks))
+
   :bind (:map semantic-mode-map
               ("C-c s j" . semantic-ia-fast-jump)
               ("C-c s s" . semantic-ia-show-summary)
               ("C-c s d" . semantic-ia-show-doc)
               ("C-c s r" . semantic-symref))
+
   :config
   (require 'semantic/sb)
   (semanticdb-enable-gnu-global-databases 'c-mode t)
   (semanticdb-enable-gnu-global-databases 'c++-mode t)
   (semantic-add-system-include "/usr/include/boost" 'c++-mode))
 
-;; Fix buggy completion when semantic is enabled https://github.com/syl20bnr/spacemacs/issues/11058
+;; Fix buggy completion when semantic is enabled: https://github.com/syl20bnr/spacemacs/issues/11058
 (defun semantic-remove-hooks ()
   (remove-hook 'completion-at-point-functions 'semantic-analyze-completion-at-point-function)
   (remove-hook 'completion-at-point-functions 'semantic-analyze-notc-completion-at-point-function)
   (remove-hook 'completion-at-point-functions 'semantic-analyze-nolongprefix-completion-at-point-function))
-
-;; Assembly files
-(use-package asm-mode
-  :mode ("\\.s\\'"))
 
 ;; Cmake files
 (use-package cmake-mode
@@ -657,10 +665,8 @@ instead."
 (add-hook 'after-save-hook #'executable-make-buffer-file-executable-if-script-p)
 
 ;;; end of: Programming
+;;; Org mode and miscellaneous
 
-;;; Org mode
-
-;; Possibly the most practical Emacs package I've ever used
 ;; Note: remember to ensure latest version (from org development repository) is installed for features
 (use-package org
   :init
@@ -670,32 +676,41 @@ instead."
         org-list-allow-alphabetical t
         org-src-tab-acts-natively t
         org-preview-latex-default-process 'convert
-        org-default-notes-file "~/org/notes.org"
+        ;org-default-notes-file "~/org/notes.org"
         org-archive-location "~/org/archive.org::* Archives"
-        org-agenda-files '("~/org")
+        org-agenda-files '("~/org" "~/school")
         org-agenda-restore-windows-after-quit t
         org-agenda-inhibit-startup nil
-        org-agenda-category-icon-alist '(("School" '("📖")) ; FIXME use xpm symbols
-                                         ("System" '("💻"))
-                                         ("Misc" '("🗡"))
-                                         ("math" '("∮")))
         org-ellipsis " ⬎"
         org-todo-keywords '((sequence "TODO(t)" "IN-PROGRESS(i)" "|" "DONE(d)" "CANCELLED(c)"))
+
+        org-agenda-category-icon-alist `(("misc" ,(edir "bin/dagger_knife.svg") nil nil :ascent center)
+                      ("system" ,(edir "bin/personal_computer.svg") nil nil :ascent center)
+                      ("math" ,(edir "bin/contour_integral.svg") nil nil :ascent center)
+                      ("school" ,(edir "bin/open_book.svg") nil nil :ascent center))
+
         org-todo-keyword-faces '(("TODO" . org-warning)
-                                 ("IN-PROGRESS" . (:inherit org-warning :foreground "blue"))
-                                 ("CANCELLED" . (:inherit org-level-1 :foreground "yellow"))))
+                      ("IN-PROGRESS" . (:inherit org-warning :foreground "blue"))
+                      ("CANCELLED" . (:inherit org-level-1 :foreground "yellow"))))
+
   :custom-face
   (org-done ((t (:family "DejaVu Sans Mono" :height 135 :bold t))))
   (org-warning ((t (:family "DejaVu Sans Mono" :height 135 :bold t))))
   (variable-pitch ((t (:family "DejaVu Sans" :height 130))))
+
   :hook ((org-mode . org-indent-mode)
          (org-mode . visual-line-mode)
          (text-mode . orgstruct-mode)
          (org-after-todo-state-change . org-archive-done))
+
   :bind (("C-c a" . org-agenda)
          ("C-c l" . org-store-link)
          ("C-c c" . org-capture)
-         ("C-c b" . org-switchb)))
+         ("C-c b" . org-switchb))
+
+  :config
+  )
+
 
 ;; Archive completed items automatically
 (defun org-archive-done ()
@@ -719,18 +734,21 @@ instead."
 ;; For those moments when I can't think of clever sounding things to write
 (use-package academic-phrases)
 
-(use-package captain
+(use-package captain                    ; TODO set this up properly
+  :hook ((text-mode . (lambda () (setq captain-predicate (lambda () t))))
+         (org-mode . (lambda () (setq captain-predicate (lambda () t)))))
   :config (global-captain-mode))
 
-;;; Web browsing TODO setup
+;; Web browsing
 (use-package w3m
-  :commands w3m-goto-url w3m-search
   :init
   (setq browse-url-browser-function 'w3m-browse-url
         w3m-use-cookies t
-        w3m-display-inline-images t)
-  :bind (("C-c w w" . w3m-goto-url)
-         ("C-c w l" . browse-url-at-point)
+        w3m-default-display-inline-images t)
+
+  :hook (w3m-fontify-after . visual-line-mode)
+  :bind (("C-c w u" . w3m-goto-url)
+         ("C-c w ." . browse-url-at-point)
          ("C-c w s" . w3m-search)
          :map w3m-mode-map
          ("&" . w3m-view-url-with-external-browser)))
@@ -738,21 +756,16 @@ instead."
 ;; URL hinting
 (use-package link-hint
   :bind (("C-c h o" . link-hint-open-link)
-         ("C-c h c" . link-hint-copy-link)))
+         ("C-c h y" . link-hint-copy-link)))
 
-;;; Programming languages
-
-(require 'setup-c)
-;; (require 'setup-cl);
-
+;;; end of: Org mode and miscellaneous
 ;;; Aesthetics
 
 ;; Fallback font for utf-8 chars
 (set-fontset-font "fontset-default" nil (font-spec :size 90 :name "Symbola"))
 
 ;; Default font
-(set-face-attribute 'default nil :height 95)
-(set-face-attribute 'mode-line nil :height 95 :family "DejaVu Sans Mono")
+(set-face-attribute 'default nil :height 109)
 
 (setq default-frame-alist '((font . "Hack")
                             (tool-bar-lines . 0)
@@ -762,31 +775,39 @@ instead."
                             (background-mode . dark)
                             (fullscreen . maximized)
                             (left-fringe . 2)
-                            (right-fringe . 5)))
+                            (right-fringe . 6)))
 
 ;; Remove obnoxious line between windows
 (set-face-foreground 'vertical-border "#073642" nil)
 
 ;; Fancy icons
 (use-package all-the-icons
+  :defer 2
   :init
-  (setq inhibit-compacting-font-caches t)
   ;; Dired support
   (use-package all-the-icons-dired
     :hook (dired-mode . all-the-icons-dired-mode))
   ;; Ivy find file support
   (use-package all-the-icons-ivy
-    :config (all-the-icons-ivy-setup)))
+    :config (all-the-icons-ivy-setup))
+  ;; Don't cause garbage collection during startup
+ (setq inhibit-compacting-font-caches t))
 
 (use-package spacemacs-theme
-  :defer t
+  :disabled t
   :init
   (load-theme 'spacemacs-dark t)
   ;; Fix funky mode line problems with color theme and powerline
-  (set-face-attribute 'mode-line nil :underline nil :overline nil :box nil)
+  (set-face-attribute 'mode-line nil :height 100 :family "DejaVu Sans Mono" :underline nil :overline nil :box nil)
   (setq spacemacs-theme-keyword-italic t
         spacemacs-theme-org-height t
         spacemacs-theme-underline-parens t))
+
+(use-package solarized-theme
+  :init
+  (load-theme 'solarized-dark t)
+  ;; Fix funky mode line problems with color theme and powerline
+  (set-face-attribute 'mode-line nil :height 100 :family "DejaVu Sans Mono" :underline nil :overline nil :box nil))
 
 (use-package powerline
   :init
@@ -855,16 +876,26 @@ instead."
                                        (unless window-system
                                          (powerline-raw (char-to-string #xe0a1) face0 'l))
                                        (powerline-raw "%l:%c " face0 'l)
-                                       (powerline-raw (sky-color-clock))
+                                       ;(powerline-raw (sky-color-clock))
                                        (when powerline-display-mule-info
                                          (powerline-raw mode-line-mule-info face0 'l))
                                        (powerline-fill face0 0))))
                        (concat (powerline-render lhs)
                                (powerline-fill face2 (powerline-width rhs))
                                (powerline-render rhs)))))))
+
   :custom-face
-  (powerline-active1 ((t (:background "#2d353a" :foreground "#ccc"))))
+  (powerline-active0 ((t (:background "#191229" :foreground "#888"))))
+  (powerline-active1 ((t (:background "#2d353a" :foreground "#bbb"))))
   (powerline-active2 ((t (:background "#5c656b" :foreground "#eee"))))
   :config (my-powerline-theme))
+
+;;; end of: Aesthetics
+;;; Programming languages
+
+(setq gc-cons-threshold 20000000)
+
+(require 'setup-c)
+;; (require 'setup-cl)
 
 ;;;; init.el ends here ;;;;
