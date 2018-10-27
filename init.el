@@ -18,37 +18,14 @@
 ;;
 ;;; If not, see <http://www.gnu.org/licenses/>.
 
-;;; Initial setup
+;; ;;; Benchmarking
+;; (use-package benchmark-init
+;;   :config
+;;   (add-hook 'after-init-hook 'benchmark-init/deactivate))
 
-;; Garbage collection should happen later
-(setq gc-cons-threshold 64000000)
+;;; Misc setup
 
-;; Package management TODO switch to straight.el
-(require 'package)
-
-;; Packages should not be activated
-(unless package--initialized
-  (package-initialize))
-
-;; Package archives
-(setq package-archives '(("melpa"     . "http://melpa.org/packages/")
-                         ("gnu"       . "http://elpa.gnu.org/packages/")
-                         ("marmalade" . "http://marmalade-repo.org/packages/")))
-
-;; Package configuration management
-(unless (package-installed-p 'use-package)
-  ;(package-refresh-contents)
-  (package-install 'use-package))
-
-(require 'use-package)
-
-;; Always install packages if not already available
-(setq use-package-always-ensure t)
-
-;;; end of: Initial setup
-;;; Useful little snippets
-
-;; Use utf-8
+;; Use utf-8 everywhere
 (setq locale-coding-system 'utf-8
       buffer-file-coding-system 'utf-8)
 
@@ -73,24 +50,17 @@
 (setq custom-file (edir "custom.el"))
 (load custom-file t t)
 
-;; Shut down server instance - use window manager for closing frames
-(defun kill-server ()
-  (interactive)
-  (save-some-buffers)
-  (kill-emacs))
-
-;; Unmap TAB and RET from C-i, C-m (legacy bindings)
-(defun unmap-keys (frame)
+;; Unmap TAB and RET from C-i, C-m (note: this only works in GUI)
+(defun unmap-keys ()
   "Unmap C-m from RET and C-i from TAB"
   (interactive)
-  ;; Never try to remap in tty - I only use emacsclient with GUI anyways
   (when (daemonp)
-    (with-selected-frame frame                  ; Note: this line is very important
-      (progn
-        (define-key input-decode-map [?\C-i] [C-i])
-        (define-key input-decode-map [?\C-m] [C-m])))))
+    (progn
+      (define-key input-decode-map [?\C-i] [C-i])
+      (define-key input-decode-map [?\C-m] [C-m]))))
 
-(add-to-list 'after-make-frame-functions 'unmap-keys t)
+(require 'server)
+(add-to-list 'server-after-make-frame-hook 'unmap-keys t)
 
 ;; Stolen from emacs redux
 (defun smarter-move-beginning-of-line (arg)
@@ -143,9 +113,6 @@ the beginning of the line."
 ;; Don't use backspace
 (global-set-key (kbd "C-S-d") 'backward-delete-char-untabify)
 
-;; Need smartparens when using minibuffer evaluation
-(add-hook 'eval-expression-minibuffer-setup-hook 'smartparens-mode)
-
 ;; C-m is easier to remember as a mark command
 (global-set-key (kbd "C-j") 'newline-and-indent)
 
@@ -158,10 +125,14 @@ the beginning of the line."
 (defalias 'z-keymap (make-sparse-keymap))
 (define-key global-map "\C-z" 'z-keymap)
 
-;;; end of: Useful little snippets
-;;; External packages
+;; Cause killing the server to ask first
+(add-hook 'kill-emacs-hook 'save-some-buffers)
+(global-set-key [remap save-buffers-kill-terminal] 'kill-emacs)
 
-;; Better dired
+;;; end of: Misc setup
+;;; EmacsWiki packages
+
+;; Better dired (note: it is highly recommended to byte compile this)
 (require 'dired+)
 
 ;; Better window resizing: https://github.com/ramnes/move-border
@@ -171,12 +142,11 @@ the beginning of the line."
 (global-set-key (kbd "M-S-<left>") 'move-border-left)
 (global-set-key (kbd "M-S-<right>") 'move-border-right)
 
-;; ;; Get weather status in mode line: https://github.com/zk-phi/sky-color-clock
-;; (require 'sky-color-clock)
-;; ;; Change to your region's latitude
-;; (sky-color-clock-initialize -34)
-;; ;; Sign up to get API key and download country codes
-;; (sky-color-clock-initialize-openweathermap-client "ce527c830c7fee7d3b0efc7e4c84da58" 6619279)
+;; Get weather status in mode line: https://github.com/zk-phi/sky-color-clock
+(require 'sky-color-clock)
+(sky-color-clock-initialize -34)        ; Change to your region's latitude
+;; Sign up to get API key and download country codes
+(sky-color-clock-initialize-openweathermap-client "ce527c830c7fee7d3b0efc7e4c84da58" 6619279)
 
 ;; Flip between buffers fast: https://github.com/jrosdahl/iflipb
 (require 'iflipb)
@@ -188,8 +158,8 @@ the beginning of the line."
 (require 'i3-integration)
 (i3-one-window-per-frame-mode-on)
 
-;;; end of: External packages
-;;; Important packages and settings
+;;; end of: EmacsWiki packages
+;;; Important external packages and settings
 
 (setq-default ring-bell-function 'ignore
               version-control t)
@@ -204,14 +174,17 @@ the beginning of the line."
 ;; Y-or-n is much faster
 (fset 'yes-or-no-p 'y-or-n-p)
 
-;; ;; Wrap words at window edge
-;; (global-visual-line-mode)
-
 ;; Simplify mode line symbols
 (use-package diminish :demand t
   :config
   (diminish 'auto-revert-mode)
 	(diminish 'eldoc-mode))
+
+;; Install binaries using system package manager
+(use-package use-package-ensure-system-package :demand t)
+
+;; Try packages for a session
+(use-package try)
 
 ;; Very Large Files
 (use-package vlf
@@ -276,7 +249,7 @@ the beginning of the line."
 ;;   (add-to-list 'ivy-prescient-filter-method-keys '("C-c C-f" (literal+initialism . fuzzy))))
 
 ;; Minibuffer completion (note I don't want to replace all the functions)
-(use-package counsel
+(use-package counsel :ensure-system-package ((rg . ripgrep) (ag . the_silver_searcher))
   :init (setq counsel-rg-base-command "rg -i -M 120 --no-heading --line-number %s .")
   :bind (("C-x C-f" . counsel-find-file)
          ("C-c j" . counsel-git)
@@ -331,7 +304,7 @@ instead."
 ;; Project management
 (use-package projectile
   :init (projectile-mode)
-  (use-package projectile-ripgrep)
+  (use-package projectile-ripgrep :ensure-system-package (rg . ripgrep))
   (setq projectile-completion-system 'ivy
         projectile-enable-caching t)
   :bind-keymap ("C-c p" . projectile-command-map))
@@ -343,35 +316,6 @@ instead."
         counsel-projectile-remove-current-buffer t)
   :after (counsel projectile)
   :config (counsel-projectile-mode))
-
-;; Completion
-(use-package company
-	:diminish
-  :init
-  (setq company-idle-delay 0
-        company-show-numbers t
-        company-tooltip-align-annotations t
-        company-minimum-prefix-length 3
-        company-dabbrev-other-buffers 'all
-        completion-styles '(initials basic partial-completion))
-
-  :bind (("C-M-/" . company-complete)
-         :map company-active-map
-         ;; Change 'input' to company candidates (as opposed to input-method)
-         ("C-\\" . company-other-backend)
-         ("C-d" . company-show-doc-buffer)
-         ("C-o" . company-filter-candidates)
-         ("M-." . company-show-location))
-  :config (global-company-mode))
-
-;; Popup tips for company
-(use-package company-quickhelp
-  :init (setq company-quickhelp-delay 0.5)
-  :config (company-quickhelp-mode))
-
-;; (use-package company-prescient
-;;   :after (company prescient)
-;;   :config (company-prescient-mode))
 
 ;; Fast jumping to places on window
 (use-package avy
@@ -396,7 +340,7 @@ instead."
         shell-pop-full-span t)
   :bind ("M-`" . shell-pop))
 
-;;; end of: Important packages
+;;; end of: Important external packages and settings
 ;;; Editing
 
 (setq-default indent-tabs-mode nil
@@ -410,9 +354,6 @@ instead."
       global-font-lock-mode t
       auto-revert-verbose nil)
 
-;; Faster commenting
-(global-set-key (kbd "C-c ;") 'comment-or-uncomment-region)
-
 ;; Hippie expand > dabbrev (no company backend unfortunately)
 (global-set-key (kbd "M-/") 'hippie-expand)
 
@@ -423,7 +364,6 @@ instead."
                                          try-expand-dabbrev-from-kill))
 
 ;; Support for some important filetypes
-(use-package asm-mode :mode ("\\.s\\'"))
 (use-package markdown-mode :mode (".md" ".markdown"))
 (use-package json-mode :mode (".json" ".imp"))
 
@@ -445,7 +385,10 @@ instead."
 
 ;; Parentheses management
 (use-package smartparens
-  :hook (prog-mode . smartparens-strict-mode)
+  :hook ((emacs-lisp-mode . smartparens-strict-mode)
+         (lisp-mode . smartparens-strict-mode)
+         (sly-mrepl-mode  . smartparens-mode)
+         (eval-expression-minibuffer-setup . smartparens-mode))
   :bind (:map smartparens-mode-map
               ("C-M-a" . sp-beginning-of-sexp)
               ("C-M-e" . sp-end-of-sexp)
@@ -490,30 +433,53 @@ instead."
               ("C-c \"" . wrap-with-double-quotes)
               ("C-c _"  . wrap-with-underscores)
               ("C-c `"  . wrap-with-back-quotes))
-
   :config (show-smartparens-global-mode)
-  (sp-local-pair '(emacs-lisp-mode) "'" "'" :actions nil)
-  (sp-local-pair '(emacs-lisp-mode) "`" "`" :actions nil)
+  (sp-local-pair '(emacs-lisp-mode lisp-mode) "'" "'" :actions nil)
+  (sp-local-pair '(emacs-lisp-mode lisp-mode) "`" "`" :actions nil)
   (sp-local-pair '(c-mode c++-mode) "'" "'" :actions nil)
   (sp-with-modes '(c-mode c++-mode)
     (sp-local-pair "{" nil :post-handlers '(("||\n[i]" "RET")))
     (sp-local-pair "/*" "*/" :post-handlers '((" | " "SPC") ("* ||\n[i]" "RET")))))
 
-;; Spell checking
-(use-package flyspell
+;; Completion
+(use-package company
+	:diminish
   :init
-  (setq flyspell-issue-welcome-flag nil)
-  (if (executable-find "aspell")
-      (progn
-        (setq ispell-program-name "aspell")
-        (setq ispell-extra-args '("--sug-mode=ultra")))
-    (message "Install aspell and dictionary"))
+  (setq company-idle-delay 0
+        company-show-numbers t
+        company-tooltip-align-annotations t
+        company-minimum-prefix-length 3
+        company-dabbrev-other-buffers 'all
+        completion-styles '(initials basic partial-completion))
+  :bind (("C-M-/" . company-complete)
+         :map company-active-map
+         ;; Change 'input' to company candidates (as opposed to input-method)
+         ("C-\\" . company-other-backend)
+         ("C-d" . company-show-doc-buffer)
+         ("C-o" . company-filter-candidates)
+         ("M-." . company-show-location))
+  :config (global-company-mode))
 
+;; Popup tips for company
+(use-package company-quickhelp
+  :init (setq company-quickhelp-delay 0.5)
+  :config (company-quickhelp-mode))
+
+;; (use-package company-prescient
+;;   :after (company prescient)
+;;   :config (company-prescient-mode))
+
+;; Spell checking
+(use-package flyspell-correct :ensure-system-package aspell
   :diminish "Flyspell"
+  :init
+  (setq ispell-program-name "aspell")
+  (setq ispell-extra-args '("--sug-mode=ultra"))
+  (setq flyspell-issue-welcome-flag nil)
   :bind ("<f7>" . flyspell-buffer)
   :hook ((org-mode . flyspell-mode)
-         (text-mode . flyspell-mode)
-         (prog-mode . flyspell-prog-mode)))
+                                        ;(prog-mode . flyspell-prog-mode)
+         (text-mode . flyspell-mode)))
 
 ;; Correct mistakes with ivy
 (use-package flyspell-correct-ivy
@@ -574,11 +540,9 @@ instead."
 
 ;; Snippets
 (use-package yasnippet
-  :init
-  ;; Snippets
-  (use-package yasnippet-snippets)
-  (yas-global-mode)
-  ;; Use this to expand snippets while in company-active-map
+  :commands yas-hippie-try-expand
+  :config (use-package yasnippet-snippets)
+  ;; Use this to expand snippets whilst in company-active-map
   (add-to-list 'hippie-expand-try-functions-list 'yas-hippie-try-expand)
   :bind (("C-c y i" . yas-insert-snippet)
          ("C-c y h" . yas-describe-tables)
@@ -606,24 +570,21 @@ instead."
 ;;   :config (flycheck-color-mode-line-mode))
 
 (use-package semantic
+  :ensure stickyfunc-enhance
   :defer t
   :init
-  (use-package stickyfunc-enhance)
   (add-to-list 'semantic-default-submodes 'global-semanticdb-minor-mode)
   (add-to-list 'semantic-default-submodes 'global-semantic-idle-scheduler-mode)
   (add-to-list 'semantic-default-submodes 'global-semantic-stickyfunc-mode)
   (add-to-list 'semantic-default-submodes 'global-semantic-idle-summary-mode)
   (add-to-list 'semantic-default-submodes 'global-semantic-highlight-func-mode)
-
   :hook ((c-mode-common . semantic-mode)
          (semantic-mode . semantic-remove-hooks))
-
   :bind (:map semantic-mode-map
               ("C-c s j" . semantic-ia-fast-jump)
               ("C-c s s" . semantic-ia-show-summary)
               ("C-c s d" . semantic-ia-show-doc)
               ("C-c s r" . semantic-symref))
-
   :config
   (require 'semantic/sb)
   (semanticdb-enable-gnu-global-databases 'c-mode t)
@@ -645,6 +606,18 @@ instead."
   :after cmake-mode
   :hook (cmake-mode . (lambda () (cmake-font-lock-activate))))
 
+;; C languages support
+(use-package cc-mode
+  :ensure nil
+  :bind ("C-M-o" . ff-find-other-file)
+  :hook (c-mode . (lambda () (rainbow-mode 0)))
+  :config
+	(setq ff-search-directories '("." "../src/*" "../include/*" "/usr/include/*" "/usr/local/*/src/*")))
+
+;; Clang format takes care of style control
+(use-package clang-format
+  :bind ("C-c f" . clang-format-region))
+
 ;; Better c++14 highlighting
 (use-package modern-cpp-font-lock
   :hook (c++-mode .  modern-c++-font-lock-global-mode))
@@ -660,9 +633,9 @@ instead."
 ;; Display function in mode line
 (add-hook 'prog-mode-hook 'which-function-mode)
 ;; Delete useless whitespace
-(add-hook 'before-save-hook (lambda () (delete-trailing-whitespace)))
+(add-hook 'before-save-hook 'delete-trailing-whitespace)
 ;; Automatically make scripts executable
-(add-hook 'after-save-hook #'executable-make-buffer-file-executable-if-script-p)
+(add-hook 'after-save-hook 'executable-make-buffer-file-executable-if-script-p)
 
 ;;; end of: Programming
 ;;; Org mode and miscellaneous
@@ -676,41 +649,31 @@ instead."
         org-list-allow-alphabetical t
         org-src-tab-acts-natively t
         org-preview-latex-default-process 'convert
-        ;org-default-notes-file "~/org/notes.org"
         org-archive-location "~/org/archive.org::* Archives"
         org-agenda-files '("~/org" "~/school")
         org-agenda-restore-windows-after-quit t
         org-agenda-inhibit-startup nil
         org-ellipsis " ⬎"
         org-todo-keywords '((sequence "TODO(t)" "IN-PROGRESS(i)" "|" "DONE(d)" "CANCELLED(c)"))
-
         org-agenda-category-icon-alist `(("misc" ,(edir "bin/dagger_knife.svg") nil nil :ascent center)
-                      ("system" ,(edir "bin/personal_computer.svg") nil nil :ascent center)
-                      ("math" ,(edir "bin/contour_integral.svg") nil nil :ascent center)
-                      ("school" ,(edir "bin/open_book.svg") nil nil :ascent center))
-
+                                         ("system" ,(edir "bin/personal_computer.svg") nil nil :ascent center)
+                                         ("math" ,(edir "bin/contour_integral.svg") nil nil :ascent center)
+                                         ("school" ,(edir "bin/open_book.svg") nil nil :ascent center))
         org-todo-keyword-faces '(("TODO" . org-warning)
-                      ("IN-PROGRESS" . (:inherit org-warning :foreground "blue"))
-                      ("CANCELLED" . (:inherit org-level-1 :foreground "yellow"))))
-
+                                 ("IN-PROGRESS" . (:inherit org-warning :foreground "blue"))
+                                 ("CANCELLED" . (:inherit org-level-1 :foreground "yellow"))))
   :custom-face
   (org-done ((t (:family "DejaVu Sans Mono" :height 135 :bold t))))
   (org-warning ((t (:family "DejaVu Sans Mono" :height 135 :bold t))))
   (variable-pitch ((t (:family "DejaVu Sans" :height 130))))
-
   :hook ((org-mode . org-indent-mode)
          (org-mode . visual-line-mode)
          (text-mode . orgstruct-mode)
          (org-after-todo-state-change . org-archive-done))
-
   :bind (("C-c a" . org-agenda)
          ("C-c l" . org-store-link)
          ("C-c c" . org-capture)
-         ("C-c b" . org-switchb))
-
-  :config
-  )
-
+         ("C-c b" . org-switchb)))
 
 ;; Archive completed items automatically
 (defun org-archive-done ()
@@ -742,10 +705,8 @@ instead."
 ;; Web browsing
 (use-package w3m
   :init
-  (setq browse-url-browser-function 'w3m-browse-url
-        w3m-use-cookies t
-        w3m-default-display-inline-images t)
-
+  (setq w3m-use-cookies t
+        browse-url-browser-function 'w3m-browse-url)
   :hook (w3m-fontify-after . visual-line-mode)
   :bind (("C-c w u" . w3m-goto-url)
          ("C-c w ." . browse-url-at-point)
@@ -766,6 +727,9 @@ instead."
 
 ;; Default font
 (set-face-attribute 'default nil :height 109)
+
+;; So it doesn't look like a terminal
+(setq-default cursor-type '(bar . 3))
 
 (setq default-frame-alist '((font . "Hack")
                             (tool-bar-lines . 0)
@@ -791,7 +755,7 @@ instead."
   (use-package all-the-icons-ivy
     :config (all-the-icons-ivy-setup))
   ;; Don't cause garbage collection during startup
- (setq inhibit-compacting-font-caches t))
+  (setq inhibit-compacting-font-caches t))
 
 (use-package spacemacs-theme
   :disabled t
@@ -828,7 +792,6 @@ instead."
                             (separator-left (intern (format "powerline-%s-%s"
                                                             (powerline-current-separator)
                                                             (car powerline-default-separator-dir))))
-
                             (separator-right (intern (format "powerline-%s-%s"
                                                              (powerline-current-separator)
                                                              (cdr powerline-default-separator-dir))))
@@ -876,14 +839,13 @@ instead."
                                        (unless window-system
                                          (powerline-raw (char-to-string #xe0a1) face0 'l))
                                        (powerline-raw "%l:%c " face0 'l)
-                                       ;(powerline-raw (sky-color-clock))
+                                        ;(powerline-raw (sky-color-clock))
                                        (when powerline-display-mule-info
                                          (powerline-raw mode-line-mule-info face0 'l))
                                        (powerline-fill face0 0))))
                        (concat (powerline-render lhs)
                                (powerline-fill face2 (powerline-width rhs))
                                (powerline-render rhs)))))))
-
   :custom-face
   (powerline-active0 ((t (:background "#191229" :foreground "#888"))))
   (powerline-active1 ((t (:background "#2d353a" :foreground "#bbb"))))
@@ -893,9 +855,17 @@ instead."
 ;;; end of: Aesthetics
 ;;; Programming languages
 
-(setq gc-cons-threshold 20000000)
+;; Common lisp setup
+(use-package sly
+  :init
+  ;; Something's broken
+  (add-to-list 'load-path (car (file-expand-wildcards "~/.emacs.d/elpa/sly-*")))
+  (setq sly-lisp-implementations '((roswell ("ros" "-Q" "run") :coding-system utf-8-unix))
+        common-lisp-hyperspec-root "file://home/plisp/.roswell/lisp/quicklisp/dists/quicklisp/software/clhs-0.6.3/HyperSpec-7-0/HyperSpec/"))
 
 (require 'setup-c)
-;; (require 'setup-cl)
+
+;; Restore sensible default
+(setq gc-cons-threshold 20000000)
 
 ;;;; init.el ends here ;;;;

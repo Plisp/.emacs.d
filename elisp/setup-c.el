@@ -1,30 +1,24 @@
 ;;;; C/C++ IDE
 
-(use-package cc-mode
-  :bind ("C-M-o" . ff-find-other-file)
-  :config
-	;; Local variables
-	(setq indent-tabs-mode t
-				tab-width 2
-        fill-column 80
-				c-basic-offset 2
-        ff-search-directories '("." "../src/*" "../include/*" "/usr/include/*" "/usr/local/*/src/*")))
-
-;; Clang format takes care of style control
-(use-package clang-format
-  :bind ("C-c f" . clang-format-region))
+(add-hook 'c-mode-common-hook
+          (lambda () (setq-local indent-tabs-mode t
+                                 tab-width 2
+                                 fill-column 80
+			                           c-basic-offset 2)))
 
 (use-package ggtags
   :init
   (setq-local imenu-create-index-function #'ggtags-build-imenu-index)
   (setq ggtags-mode-line-project-name nil
         ggtags-oversize-limit 30000000)
-  :bind (("M-," . pop-tag-mark))
+  :bind (("M-," . pop-tag-mark)
+         ("C-z g" . hydra-ggtags/body))
   :hook ((c++-mode . ggtags-mode)
          (c-mode . ggtags-mode)
          (asm-mode . ggtags-mode)
          (makefile-mode . ggtags-mode)
          (sh-mode . ggtags-mode))
+
   :config
   (defhydra hydra-ggtags (:timeout 3)
     "A menu of useful ggtags functions"
@@ -34,11 +28,7 @@
     ("r" ggtags-find-reference)
     ("h" ggtags-view-tags-history)
     ("c" ggtags-create-tags)
-    ("u" ggtags-update-tags))
-
-  (define-key c-mode-base-map (kbd "<C-i>") 'hydra-ggtags/body))
-
-;; TODO write a hydra for other things to do in c-mode-base-map
+    ("u" ggtags-update-tags)))
 
 (defvar my-ycmd-server-command '("python3" "/usr/src/ycmd/ycmd"))
 (defvar my-ycmd-extra-conf-whitelist "~/code/configs/.ycm_extra_conf.py")
@@ -51,19 +41,16 @@
   (set-variable 'ycmd-global-config 'my-ycmd-global-config)
   :hook ((c++-mode . ycmd-mode)
          (rust-mode . ycmd-mode))
-  :config
-  (require 'ycmd-eldoc)
-  (ycmd-eldoc-setup))
+  :config (ycmd-eldoc-setup)
+  (require 'ycmd-eldoc))
 
 (use-package company-ycmd
   :after (ycmd company)
-  :config
-  (company-ycmd-setup))
+  :config (company-ycmd-setup))
 
 (use-package flycheck-ycmd
   :after (ycmd flycheck)
-  :config
-  (flycheck-ycmd-setup))
+  :config (flycheck-ycmd-setup))
 
 ;; As of writing this only provides the capability to find references,
 ;; which gtags + universal-ctags does not handle well (even with pygments)
