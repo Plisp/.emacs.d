@@ -1,10 +1,9 @@
 ;;;; C/C++ IDE
 
-(add-hook 'c-mode-common-hook
-          (lambda () (setq-local indent-tabs-mode t
-                                 tab-width 2
-                                 fill-column 80
-			                           c-basic-offset 2)))
+(add-hook 'c-mode-common-hook (lambda () (progn (setq-local indent-tabs-mode t)
+                                                (setq-local tab-width 2)
+                                                (setq-local fill-column 80)
+			                                          (setq-local c-basic-offset 2))))
 
 (use-package ggtags
   :init

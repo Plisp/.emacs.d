@@ -12,12 +12,3 @@
 (setq package-archives '(("gnu"       . "https://elpa.gnu.org/packages/")
                          ("melpa"     . "https://melpa.org/packages/")
                          ("marmalade" . "https://marmalade-repo.org/packages/")))
-
-;; Package configuration management
-(unless (package-installed-p 'use-package)
-  (package-refresh-contents)
-  (package-install 'use-package))
-(require 'use-package)
-
-;; Always install packages if not already available
-(setq use-package-always-ensure t)

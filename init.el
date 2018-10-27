@@ -18,10 +18,19 @@
 ;;
 ;;; If not, see <http://www.gnu.org/licenses/>.
 
-;; ;;; Benchmarking
-;; (use-package benchmark-init
-;;   :config
-;;   (add-hook 'after-init-hook 'benchmark-init/deactivate))
+;;; Package configuration management
+(unless (package-installed-p 'use-package)
+  (package-refresh-contents)
+  (package-install 'use-package))
+(require 'use-package)
+
+;; Always install packages if not already available
+(setq use-package-always-ensure t)
+
+;;; Benchmarking
+(use-package benchmark-init
+  :config
+  (add-hook 'after-init-hook 'benchmark-init/deactivate))
 
 ;;; Misc setup
 
@@ -235,6 +244,7 @@ the beginning of the line."
         ivy-display-style 'fancy
         ivy-initial-inputs-alist nil
         ivy-re-builders-alist '((swiper . ivy--regex-plus)
+                                (counsel-descbinds . ivy--regex-plus)
                                 (t . ivy--regex-fuzzy))))
 
 ;; ;; another fuzzy package (not quite good enough yet)
