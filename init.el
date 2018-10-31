@@ -27,25 +27,15 @@
 ;; Always install packages if not already available
 (setq use-package-always-ensure t)
 
+;; No error checking necessary
+(setq use-package-expand-minimally t)
+
 ;;; Benchmarking
 (use-package benchmark-init
   :config
   (add-hook 'after-init-hook 'benchmark-init/deactivate))
 
-;;; Misc setup
-
-;; Use utf-8 everywhere
-(setq locale-coding-system 'utf-8
-      buffer-file-coding-system 'utf-8)
-
-(set-language-environment 'utf-8)
-(set-default-coding-systems 'utf-8)
-(set-terminal-coding-system 'utf-8)
-(prefer-coding-system 'utf-8)
-
-;; Coding preference for pasted strings
-(when (display-graphic-p)
-  (setq x-select-request-type '(UTF8_STRING COMPOUND_TEXT TEXT STRING)))
+;;; Misc. setup
 
 ;; Used several times
 (eval-and-compile
@@ -138,50 +128,17 @@ the beginning of the line."
 (add-hook 'kill-emacs-hook 'save-some-buffers)
 (global-set-key [remap save-buffers-kill-terminal] 'kill-emacs)
 
-;;; end of: Misc setup
-;;; EmacsWiki packages
+;;; end of: Misc. setup
+;;; Essential packages
 
-;; Better dired (note: it is highly recommended to byte compile this)
-(require 'dired+)
+;; Hippie expand > dabbrev (no company backend unfortunately)
+(global-set-key (kbd "M-/") 'hippie-expand)
 
-;; Better window resizing: https://github.com/ramnes/move-border
-(require 'move-border)
-(global-set-key (kbd "M-S-<up>") 'move-border-up)
-(global-set-key (kbd "M-S-<down>") 'move-border-down)
-(global-set-key (kbd "M-S-<left>") 'move-border-left)
-(global-set-key (kbd "M-S-<right>") 'move-border-right)
-
-;; Get weather status in mode line: https://github.com/zk-phi/sky-color-clock
-(require 'sky-color-clock)
-(sky-color-clock-initialize -34)        ; Change to your region's latitude
-;; Sign up to get API key and download country codes
-(sky-color-clock-initialize-openweathermap-client "ce527c830c7fee7d3b0efc7e4c84da58" 6619279)
-
-;; Flip between buffers fast: https://github.com/jrosdahl/iflipb
-(require 'iflipb)
-(global-set-key [M-tab] 'iflipb-next-buffer)
-(global-set-key [M-iso-lefttab] 'iflipb-previous-buffer)
-
-;; i3 integration: https://github.com/vava/i3-emacs
-(require 'i3)
-(require 'i3-integration)
-(i3-one-window-per-frame-mode-on)
-
-;;; end of: EmacsWiki packages
-;;; Important external packages and settings
-
-(setq-default ring-bell-function 'ignore
-              version-control t)
-
-(setq delete-old-versions t
-      save-silently t
-      auto-save-default nil
-      backup-directory-alist `(("." . ,(edir "backups")))
-      vc-make-backup-files t
-      column-number-mode t)
-
-;; Y-or-n is much faster
-(fset 'yes-or-no-p 'y-or-n-p)
+(setq hippie-expand-try-functions-list '(try-complete-file-name-partially
+                                         try-complete-file-name
+                                         try-expand-dabbrev
+                                         try-expand-dabbrev-all-buffers
+                                         try-expand-dabbrev-from-kill))
 
 ;; Simplify mode line symbols
 (use-package diminish :demand t
@@ -192,22 +149,10 @@ the beginning of the line."
 ;; Install binaries using system package manager
 (use-package use-package-ensure-system-package :demand t)
 
-;; Try packages for a session
-(use-package try)
-
-;; Very Large Files
-(use-package vlf
-  :init (require 'vlf-setup))
-
 ;; Help with finding cursor
 (use-package beacon
   :diminish "_*_"
   :config (beacon-mode))
-
-;; Color code highlighting
-(use-package rainbow-mode
-	:diminish
-  :hook (prog-mode . rainbow-mode))
 
 ;; Help with keybindings
 (use-package which-key
@@ -215,22 +160,14 @@ the beginning of the line."
   :init (setq which-key-idle-delay 0.5)
   :config (which-key-mode))
 
-;; Edit grep results directly
-(use-package wgrep)
+;; Automatically compile init files
+(use-package auto-compile
+  :init (auto-compile-on-save-mode))
 
-;; Smart mark
-(use-package smart-region
-  :bind ("C-SPC" . smart-region))
-
-;; Multiple cursors
-(use-package multiple-cursors
-  :bind (("C-<" . mc/mark-previous-like-this)
-         ("C->" . mc/mark-next-like-this)
-         ("C-+" . mc/mark-all-like-this)
-         ("C-c m r" . set-rectangular-region-anchor)
-         ("C-c m c" . mc/edit-lines)
-         ("C-c m e" . mc/edit-ends-of-lines)
-         ("C-c m a" . mc/edit-beginnings-of-lines)))
+;; https://github.com/abo-abo/hydra TODO configure and write hydras
+(use-package hydra
+  :init
+  (setq hydra-verbose t))
 
 ;; Regex matching for everything
 (use-package ivy
@@ -258,17 +195,6 @@ the beginning of the line."
 ;;   (add-to-list 'ivy-prescient-excluded-commands 'counsel-rg)
 ;;   (add-to-list 'ivy-prescient-filter-method-keys '("C-c C-f" (literal+initialism . fuzzy))))
 
-;; Minibuffer completion (note I don't want to replace all the functions)
-(use-package counsel :ensure-system-package ((rg . ripgrep) (ag . the_silver_searcher))
-  :init (setq counsel-rg-base-command "rg -i -M 120 --no-heading --line-number %s .")
-  :bind (("C-x C-f" . counsel-find-file)
-         ("C-c j" . counsel-git)
-         ("C-c u" . counsel-unicode-char)
-         ("C-c r" . mu-counsel-search-project)
-         ("M-Y" . counsel-yank-pop)
-         ([remap describe-bindings] . counsel-descbinds)
-         ([remap apropos-command] . counsel-apropos)))
-
 (defun mu-counsel-search-project (initial-input &optional use-current-dir)
   "Search using `counsel-rg' from the project root for INITIAL-INPUT.
 If there is no project root, or if the prefix argument
@@ -283,6 +209,17 @@ instead."
                    (projectile-project-root)
                  (error default-directory)))))
     (funcall 'counsel-rg initial-input dir)))
+
+;; Minibuffer completion (note I don't want to replace all the functions)
+(use-package counsel :ensure-system-package ((rg . ripgrep) (ag . the_silver_searcher))
+  :init (setq counsel-rg-base-command "rg -i -M 120 --no-heading --line-number %s .")
+  :bind (("C-x C-f" . counsel-find-file)
+         ("C-c j" . counsel-git)
+         ("C-c u" . counsel-unicode-char)
+         ("C-c r" . mu-counsel-search-project)
+         ("M-Y" . counsel-yank-pop)
+         ([remap describe-bindings] . counsel-descbinds)
+         ([remap apropos-command] . counsel-apropos)))
 
 ;; Better fuzzy matching for smex
 (use-package flx
@@ -305,27 +242,115 @@ instead."
   :bind (("C-S-s" . swiper)
          ("M-S" . swiper-all)))
 
-;; Fuzzy isearching
-(use-package flx-isearch
-  :after flx
-  :bind (("C-s" . flx-isearch-forward)
-         ("C-r" . flx-isearch-backward)))
+;; ;; Broken fuzzy isearching
+;; (use-package flx-isearch
+;;   :after flx
+;;   :bind (("C-s" . flx-isearch-forward)
+;;          ("C-r" . flx-isearch-backward)))
 
-;; Project management
-(use-package projectile
-  :init (projectile-mode)
-  (use-package projectile-ripgrep :ensure-system-package (rg . ripgrep))
-  (setq projectile-completion-system 'ivy
-        projectile-enable-caching t)
-  :bind-keymap ("C-c p" . projectile-command-map))
+;;; end of: Essential packages
+;;; General settings
 
-;; Better projectile integration
-(use-package counsel-projectile
-  :init
-  (setq counsel-projectile-grep-command "rg -i -M 120 --no-heading --line-number %s ."
-        counsel-projectile-remove-current-buffer t)
-  :after (counsel projectile)
-  :config (counsel-projectile-mode))
+(setq-default ring-bell-function 'ignore
+              version-control t
+              ediff-split-window-function 'split-window-horizontally
+              indent-tabs-mode nil
+              tab-width 2
+              indicate-empty-lines t)
+
+(setq delete-old-versions t
+      save-silently t
+      auto-save-default nil
+      backup-directory-alist `(("." . ,(edir "backups")))
+      vc-make-backup-files t
+      vc-follow-symlinks t
+      x-stretch-cursor t
+      column-number-mode t
+      delete-selection-mode t
+      transient-mark-mode t
+      scroll-preserve-screen-position t
+      global-font-lock-mode t
+      auto-revert-verbose nil)
+
+;; Y-or-n is much faster
+(fset 'yes-or-no-p 'y-or-n-p)
+
+;; Use utf-8 everywhere
+(setq locale-coding-system 'utf-8
+      buffer-file-coding-system 'utf-8)
+
+(set-language-environment 'utf-8)
+(set-default-coding-systems 'utf-8)
+(set-terminal-coding-system 'utf-8)
+(prefer-coding-system 'utf-8)
+
+;; Coding preference for pasted strings
+(when (display-graphic-p)
+  (setq x-select-request-type '(UTF8_STRING COMPOUND_TEXT TEXT STRING)))
+
+;;; end of: General settings
+;;; EmacsWiki packages
+
+;; Better dired (note: it is highly recommended to byte compile this)
+(use-package dired+ :ensure nil
+  :no-require
+  :hook (dired-mode . (lambda () (require 'dired+)))
+  :init (setq dired-listing-switches "-alh"))
+
+;; Better window resizing: https://github.com/ramnes/move-border
+(use-package move-border :ensure nil
+  :bind (("M-S-<up>" . move-border-up)
+         ("M-S-<down>" . move-border-down)
+         ("M-S-<left>" . move-border-left)
+         ("M-S-<right>" . move-border-right)))
+
+;; ;; Get weather status in mode line: https://github.com/zk-phi/sky-color-clock
+;; (use-package sky-color-clock :ensure nil
+;;   :config
+;;   ;; Change to your region's latitude
+;;   (sky-color-clock-initialize -34)
+;;   ;; Sign up on openweathermap for API key and city IDs
+;;   (sky-color-clock-initialize-openweathermap-client "ce527c830c7fee7d3b0efc7e4c84da58" 6619279))
+
+;; Flip between buffers fast: https://github.com/jrosdahl/iflipb
+(use-package iflipb :ensure nil
+  :bind (([M-tab] . iflipb-next-buffer)
+         ;; Meta-Shift-Tab
+         ([M-iso-lefttab] . iflipb-previous-buffer)))
+
+;; i3 integration: https://github.com/vava/i3-emacs
+(use-package i3 :ensure nil
+  :init (require 'i3-integration)
+  (i3-one-window-per-frame-mode-on))
+
+;;; end of: EmacsWiki packages
+;;; Editing
+
+;; Very Large Files
+(use-package vlf
+  :init (require 'vlf-setup))
+
+;; Color code highlighting
+(use-package rainbow-mode
+	:diminish
+  :hook (prog-mode . rainbow-mode))
+
+;; Edit grep results directly
+(use-package wgrep)
+
+;; Smart mark
+(use-package smart-region
+  :bind ("C-SPC" . smart-region))
+
+;; Multiple cursors
+(use-package multiple-cursors
+  :bind (("C-<" . mc/mark-previous-like-this)
+         ("C->" . mc/mark-next-like-this)
+         ("C-+" . mc/mark-all-like-this)
+         ("C-c m r" . set-rectangular-region-anchor)
+         ("C-c m c" . mc/edit-lines)
+         ("C-c m e" . mc/edit-ends-of-lines)
+         ("C-c m a" . mc/edit-beginnings-of-lines)))
 
 ;; Fast jumping to places on window
 (use-package avy
@@ -338,40 +363,12 @@ instead."
   :init (setq aw-keys '(?a ?s ?d ?j ?k ?l))
   :bind ("M-o" . ace-window))
 
-;; https://github.com/abo-abo/hydra TODO configure and write hydras
-(use-package hydra
-  :init
-  (setq hydra-verbose t))
-
 ;; Quick shell
 (use-package shell-pop
   :init
   (setq shell-pop-term-shell "/bin/bash"
         shell-pop-full-span t)
   :bind ("M-`" . shell-pop))
-
-;;; end of: Important external packages and settings
-;;; Editing
-
-(setq-default indent-tabs-mode nil
-              tab-width 2
-              indicate-empty-lines t)
-
-(setq x-stretch-cursor t
-      delete-selection-mode t
-      transient-mark-mode t
-      scroll-preserve-screen-position t
-      global-font-lock-mode t
-      auto-revert-verbose nil)
-
-;; Hippie expand > dabbrev (no company backend unfortunately)
-(global-set-key (kbd "M-/") 'hippie-expand)
-
-(setq hippie-expand-try-functions-list '(try-complete-file-name-partially
-                                         try-complete-file-name
-                                         try-expand-dabbrev
-                                         try-expand-dabbrev-all-buffers
-                                         try-expand-dabbrev-from-kill))
 
 ;; Support for some important filetypes
 (use-package markdown-mode :mode (".md" ".markdown"))
@@ -488,7 +485,6 @@ instead."
   (setq flyspell-issue-welcome-flag nil)
   :bind ("<f7>" . flyspell-buffer)
   :hook ((org-mode . flyspell-mode)
-                                        ;(prog-mode . flyspell-prog-mode)
          (text-mode . flyspell-mode)))
 
 ;; Correct mistakes with ivy
@@ -500,16 +496,29 @@ instead."
 ;;; end of: Editing
 ;;; Programming
 
-(setq-default ediff-split-window-function 'split-window-horizontally
-              ;; Don't let electric indent lines other than the current
-              electric-indent-inhibit t)
+;; Don't let electric indent lines other than the current
+(setq-default electric-indent-inhibit t)
 
-(require 'compile)
+(use-package compile :ensure nil
+  :init
+  (setq compilation-ask-about-save nil
+        compilation-always-kill t
+        compilation-scroll-output 'first-error))
 
-(setq vc-follow-symlinks t
-      compilation-ask-about-save nil
-      compilation-always-kill t
-      compilation-scroll-output 'first-error)
+;; Project management
+(use-package projectile
+  :init (projectile-mode)
+  (use-package projectile-ripgrep :ensure-system-package (rg . ripgrep))
+  (setq projectile-completion-system 'ivy
+        projectile-enable-caching t)
+  :bind-keymap ("C-c p" . projectile-command-map))
+
+;; Better projectile integration
+(use-package counsel-projectile
+  :init
+  (setq counsel-projectile-remove-current-buffer t)
+  :after (counsel projectile)
+  :config (counsel-projectile-mode))
 
 ;; Rainbow parentheses
 (use-package rainbow-delimiters
@@ -579,6 +588,12 @@ instead."
 ;;   :after flycheck
 ;;   :config (flycheck-color-mode-line-mode))
 
+(defun semantic-remove-hooks ()
+  "Fix buggy completion when semantic is enabled: https://github.com/syl20bnr/spacemacs/issues/11058"
+  (remove-hook 'completion-at-point-functions 'semantic-analyze-completion-at-point-function)
+  (remove-hook 'completion-at-point-functions 'semantic-analyze-notc-completion-at-point-function)
+  (remove-hook 'completion-at-point-functions 'semantic-analyze-nolongprefix-completion-at-point-function))
+
 (use-package semantic
   :ensure stickyfunc-enhance
   :defer t
@@ -596,16 +611,9 @@ instead."
               ("C-c s d" . semantic-ia-show-doc)
               ("C-c s r" . semantic-symref))
   :config
-  (require 'semantic/sb)
   (semanticdb-enable-gnu-global-databases 'c-mode t)
   (semanticdb-enable-gnu-global-databases 'c++-mode t)
   (semantic-add-system-include "/usr/include/boost" 'c++-mode))
-
-;; Fix buggy completion when semantic is enabled: https://github.com/syl20bnr/spacemacs/issues/11058
-(defun semantic-remove-hooks ()
-  (remove-hook 'completion-at-point-functions 'semantic-analyze-completion-at-point-function)
-  (remove-hook 'completion-at-point-functions 'semantic-analyze-notc-completion-at-point-function)
-  (remove-hook 'completion-at-point-functions 'semantic-analyze-nolongprefix-completion-at-point-function))
 
 ;; Cmake files
 (use-package cmake-mode
@@ -640,15 +648,23 @@ instead."
 
 ;; highlight lines
 (add-hook 'prog-mode-hook 'hl-line-mode)
+
 ;; Display function in mode line
 (add-hook 'prog-mode-hook 'which-function-mode)
+
 ;; Delete useless whitespace
 (add-hook 'before-save-hook 'delete-trailing-whitespace)
+
 ;; Automatically make scripts executable
 (add-hook 'after-save-hook 'executable-make-buffer-file-executable-if-script-p)
 
 ;;; end of: Programming
 ;;; Org mode and miscellaneous
+
+(defun org-archive-done ()
+  "Archive completed items automatically"
+  (when (org-entry-is-done-p)
+    (org-archive-subtree-default)))
 
 ;; Note: remember to ensure latest version (from org development repository) is installed for features
 (use-package org
@@ -660,7 +676,7 @@ instead."
         org-src-tab-acts-natively t
         org-preview-latex-default-process 'convert
         org-archive-location "~/org/archive.org::* Archives"
-        org-agenda-files '("~/org" "~/school")
+        org-agenda-files "~/org"
         org-agenda-restore-windows-after-quit t
         org-agenda-inhibit-startup nil
         org-ellipsis " ⬎"
@@ -684,11 +700,6 @@ instead."
          ("C-c l" . org-store-link)
          ("C-c c" . org-capture)
          ("C-c b" . org-switchb)))
-
-;; Archive completed items automatically
-(defun org-archive-done ()
-  (when (org-entry-is-done-p)
-    (org-archive-subtree-default)))
 
 ;; fancy bullets
 (use-package org-bullets
@@ -768,20 +779,14 @@ instead."
   (setq inhibit-compacting-font-caches t))
 
 (use-package spacemacs-theme
-  :disabled t
-  :init
-  (load-theme 'spacemacs-dark t)
-  ;; Fix funky mode line problems with color theme and powerline
-  (set-face-attribute 'mode-line nil :height 100 :family "DejaVu Sans Mono" :underline nil :overline nil :box nil)
-  (setq spacemacs-theme-keyword-italic t
-        spacemacs-theme-org-height t
-        spacemacs-theme-underline-parens t))
-
-(use-package solarized-theme
-  :init
-  (load-theme 'solarized-dark t)
-  ;; Fix funky mode line problems with color theme and powerline
-  (set-face-attribute 'mode-line nil :height 100 :family "DejaVu Sans Mono" :underline nil :overline nil :box nil))
+  :no-require                           ; Actual feature is not called spacemacs-theme
+  :custom-face
+  :init (load-theme 'spacemacs-dark t)
+  (setq spacemacs-theme-org-height t
+        spacemacs-theme-org-highlight t
+        spacemacs-theme-comment-bg nil
+        spacemacs-theme-underline-parens t)
+  :hook (server-after-make-frame . (lambda () (load-theme 'spacemacs-dark t))))
 
 (use-package powerline
   :init
@@ -807,15 +812,14 @@ instead."
                                                              (cdr powerline-default-separator-dir))))
 
                             (lhs (list (powerline-raw "%*" face0 'l)
-                                       (powerline-buffer-id `(mode-line-buffer-id ,face0) 'l)
-                                       (when powerline-display-buffer-size
-                                         (powerline-buffer-size face0 'l))
+                                       (powerline-buffer-id `(mode-line-buffer-id ,face0))
                                        (powerline-vc face0 'r)
                                        (when (and (buffer-file-name (current-buffer)) vc-mode)
                                          (if (and window-system (not powerline-gui-use-vcs-glyph))
                                              (powerline-raw
-                                              (all-the-icons-octicon "git-branch" :face face0 :v-adjust 0.05)
-                                              face0 'r)))
+                                              (all-the-icons-octicon
+                                               "git-branch"
+                                               :face face0 :v-adjust 0.05) face0 'r)))
 
                                        (funcall separator-left face0 face1)
 
@@ -834,11 +838,13 @@ instead."
 
                                        (funcall separator-left face1 face2)
 
+                                       (when powerline-display-buffer-size
+                                         (powerline-buffer-size face2 'l))
                                        (powerline-raw "[" face2 'l)
                                        (when (bound-and-true-p nyan-mode)
                                          (powerline-raw (list (nyan-create)) face2))
-                                       (powerline-raw "] " face2)
-                                       (powerline-raw "%o" face2 'r)))
+                                       (powerline-raw "]" face2)
+                                       (powerline-raw "%l:%c " face2 'l)))
 
                             (rhs (list (funcall separator-right face2 face1)
                                        (powerline-raw " " face1)
@@ -846,13 +852,11 @@ instead."
 
                                        (funcall separator-right face1 face0)
 
-                                       (unless window-system
-                                         (powerline-raw (char-to-string #xe0a1) face0 'l))
-                                       (powerline-raw "%l:%c " face0 'l)
-                                        ;(powerline-raw (sky-color-clock))
+                                       ;(powerline-raw (sky-color-clock) face0 'l)
                                        (when powerline-display-mule-info
                                          (powerline-raw mode-line-mule-info face0 'l))
                                        (powerline-fill face0 0))))
+
                        (concat (powerline-render lhs)
                                (powerline-fill face2 (powerline-width rhs))
                                (powerline-render rhs)))))))
@@ -867,13 +871,13 @@ instead."
 
 ;; Common lisp setup
 (use-package sly
+  :defer t
+  :load-path "~/.emacs.d/elpa/sly-20181023.1137"
   :init
-  ;; Something's broken
-  (add-to-list 'load-path (car (file-expand-wildcards "~/.emacs.d/elpa/sly-*")))
   (setq sly-lisp-implementations '((roswell ("ros" "-Q" "run") :coding-system utf-8-unix))
         common-lisp-hyperspec-root "file://home/plisp/.roswell/lisp/quicklisp/dists/quicklisp/software/clhs-0.6.3/HyperSpec-7-0/HyperSpec/"))
 
-(require 'setup-c)
+;; (require 'setup-c)
 
 ;; Restore sensible default
 (setq gc-cons-threshold 20000000)
