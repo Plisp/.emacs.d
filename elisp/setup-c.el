@@ -1,10 +1,13 @@
 ;;;; C/C++ IDE
 
-(add-hook 'c-mode-common-hook (lambda () (progn (setq-local indent-tabs-mode t)
-                                                (setq-local tab-width 2)
-                                                (setq-local fill-column 80)
-			                                          (setq-local c-basic-offset 2))))
+(add-hook 'c-mode-common-hook (lambda ()
+                                (progn (setq-local indent-tabs-mode t)
+                                       (setq-local tab-width 4)
+                                       (setq-local c-basic-offset 4)
+                                       (setq-local fill-column 80)
+                                       (toggle-truncate-lines))))
 
+;; Tagging
 (use-package ggtags
   :init
   (setq-local imenu-create-index-function #'ggtags-build-imenu-index)
@@ -17,7 +20,6 @@
          (asm-mode . ggtags-mode)
          (makefile-mode . ggtags-mode)
          (sh-mode . ggtags-mode))
-
   :config
   (defhydra hydra-ggtags (:timeout 3)
     "A menu of useful ggtags functions"
@@ -29,37 +31,36 @@
     ("c" ggtags-create-tags)
     ("u" ggtags-update-tags)))
 
-(defvar my-ycmd-server-command '("python3" "/usr/src/ycmd/ycmd"))
-(defvar my-ycmd-extra-conf-whitelist "~/code/configs/.ycm_extra_conf.py")
-(defvar my-ycmd-global-config "~/code/configs/.ycm_extra_conf.py")
-
+;; Fuzzy intelligent completion
 (use-package ycmd
   :init
-  (set-variable 'ycmd-server-command my-ycmd-server-command)
-  (set-variable 'ycmd-extra-conf-whitelist 'my-ycmd-extra-conf-whitelist)
-  (set-variable 'ycmd-global-config 'my-ycmd-global-config)
-  :hook ((c++-mode . ycmd-mode)
-         (rust-mode . ycmd-mode))
-  :config (ycmd-eldoc-setup)
-  (require 'ycmd-eldoc))
+  (set-variable 'ycmd-server-command '("python" "/usr/local/src/ycmd/ycmd"))
+  (set-variable 'ycmd-global-config "~/global_conf.py")
+  (set-variable 'ycmd-extra-conf-whitelist "~/global_conf.py")
+  :hook ((c-mode . ycmd-mode)
+         (c++-mode . ycmd-mode))
+  :config
+  (require 'ycmd-eldoc)
+  (ycmd-eldoc-setup)
+  ;; Integration with company
+  (use-package company-ycmd
+    :after (ycmd company)
+    :config (company-ycmd-setup))
+  ;; Error checking integration
+  (use-package flycheck-ycmd
+    :after (ycmd flycheck)
+    :config (flycheck-ycmd-setup))
+  ;; As of writing this is still vaporware
+  (use-package ivy-ycmd
+    :after (ycmd ivy)))
 
-(use-package company-ycmd
-  :after (ycmd company)
-  :config (company-ycmd-setup))
-
-(use-package flycheck-ycmd
-  :after (ycmd flycheck)
-  :config (flycheck-ycmd-setup))
-
-;; As of writing this only provides the capability to find references,
-;; which gtags + universal-ctags does not handle well (even with pygments)
-(use-package ivy-ycmd
-  :after (ycmd ivy))
-
+;; Header file completion
 (use-package company-c-headers
+  :after ycmd
   :config
   (add-to-list 'company-c-headers-path-system "/usr/include/c++/8.2/")
-  ;; This must be the first backend
+  (add-to-list 'company-c-headers-path-user "/usr/local/include/")
+  ;; This MUST be the first backend
   (add-to-list 'company-backends 'company-c-headers))
 
 (provide 'setup-c)
