@@ -31,6 +31,9 @@
                          ("melpa"     . "https://melpa.org/packages/")
                          ("marmalade" . "https://marmalade-repo.org/packages/")))
 
+;; package-quickstart does not run package-initialize
+(advice-add 'package-install :before '(lambda (package) (package-initialize)))
+
 ;;; Package configuration management
 (unless (package-installed-p 'use-package)
   (package-refresh-contents)
@@ -64,18 +67,20 @@
 
 (load custom-file t t)
 
-;; Unmap TAB, RET, ESC from C-i, C-m, C-[ (note: this only works in GUI)
-(defun unmap-keys ()
-  "Unmap C-m from RET, \\C-i from TAB, \\C-[ from ESC."
-  (interactive)
-  (when (daemonp)
-    (progn
-      (define-key input-decode-map [?\C-i] [C-i])
-      (define-key input-decode-map [?\C-m] [C-m])
-      (define-key input-decode-map [?\C-\[] [C-\[]))))
-
 ;; Need to use server-after-make-frame-hook
 (require 'server)
+
+;; Unmap TAB, RET, ESC from C-i, C-m, C-[ (note: this only works in GUI)
+(defun unmap-keys ()
+  "Unmap C-m from RET, C-i from TAB, C-[ from ESC.
+So that I can use the keys elsewhere"
+  (interactive)
+  (if (display-graphic-p)
+      (when (daemonp)
+        (progn
+          (define-key input-decode-map [?\C-i] [C-i])
+          (define-key input-decode-map [?\C-m] [C-m])
+          (define-key input-decode-map [?\C-\[] [C-\[])))))
 
 (add-to-list 'server-after-make-frame-hook 'unmap-keys t)
 
@@ -125,15 +130,14 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 
 ;; Char deletion
 (global-set-key (kbd "M-z") 'zap-up-to-char)
-
 (global-set-key (kbd "M-Z") 'zap-to-char)
 
-;; C-z is my personal prefix TODO write bindings
-(global-unset-key (kbd "C-z"))
+;; ;; C-z is my personal prefix TODO write bindings
+;; (global-unset-key (kbd "C-z"))
 
-(defalias 'z-keymap (make-sparse-keymap))
+;; (defalias 'z-keymap (make-sparse-keymap))
 
-(global-set-key "\C-z" 'z-keymap)
+;; (global-set-key "\C-z" 'z-keymap)
 
 ;; Cause killing the server to ask first
 (add-hook 'kill-emacs-hook 'save-some-buffers)
@@ -178,7 +182,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
   :init
   (setq hydra-verbose t))
 
-;; Regex matching for everything
+;; Minibuffer completion frontend
 (use-package ivy
 	:diminish
   :init (ivy-mode)
@@ -212,7 +216,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 ;;   (add-to-list 'ivy-prescient-excluded-commands 'counsel-rg)
 ;;   (add-to-list 'ivy-prescient-filter-method-keys '("C-c C-f" (literal+initialism . fuzzy))))
 
-;; Minibuffer completion (note I don't want to replace all the default functions)
+;; Minibuffer completion all the things!
 (use-package counsel
   :ensure-system-package ((rg . ripgrep) (ag . the_silver_searcher))
   :init (setq counsel-rg-base-command "rg -i -M 120 --no-heading --line-number --color never %s ."
@@ -231,6 +235,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 ;; Better fuzzy matching for smex
 (use-package flx)
 
+;; flx integration for smex
 (use-package flx-ido
   :after flx
   :config (flx-ido-mode))
@@ -250,12 +255,6 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
         swiper-action-recenter t
         swiper-goto-start-of-match t)
   :bind (("C-S-s" . swiper-all)))
-
-;; ;; Broken fuzzy isearching
-;; (use-package flx-isearch
-;;   :after flx
-;;   :bind (("C-s" . flx-isearch-forward)
-;;          ("C-r" . flx-isearch-backward)))
 
 ;;; end of: Essential packages
 ;;; General settings
@@ -466,9 +465,8 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 
 ;; Completion
 (use-package company
-  :defer t
 	:diminish
-  :init
+  :init (global-company-mode)
   (setq company-idle-delay 0
         company-show-numbers t
         company-tooltip-align-annotations t
@@ -477,12 +475,14 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
         completion-styles '(initials basic partial-completion))
   :bind (("C-M-/" . company-complete)
          :map company-active-map
+         ;; YCM style
+         ([tab] . company-complete-common-or-cycle)
          ;; Change 'input' to company candidates (as opposed to input-method)
          ("C-\\" . company-other-backend)
          ("C-d" . company-show-doc-buffer)
          ("C-o" . company-filter-candidates)
-         ("M-." . company-show-location))
-  :config (global-company-mode))
+         ;; Jump to completion source
+         ("M-." . company-show-location)))
 
 ;; Popup tips for company
 (use-package company-quickhelp
@@ -590,7 +590,6 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
          ("C-c y h" . yas-describe-tables)
          ("C-c y r" . yas-reload-all))
   :config
-  ;; Use this to expand snippets whilst in company-active-map
   (add-to-list 'hippie-expand-try-functions-list 'yas-hippie-try-expand))
 
 ;; Snippets for yasnippet
@@ -641,37 +640,20 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 ;;   (semanticdb-enable-gnu-global-databases 'c++-mode t)
 ;;   (semantic-add-system-include "/usr/include/boost" 'c++-mode))
 
-;; Cmake files
-(use-package cmake-mode
-  :mode ("CMakeLists.txt" ".cmake")
-  :hook (cmake-mode . (lambda () (add-to-list 'company-backends 'company-cmake))))
-
-(use-package cmake-font-lock
-  :after cmake-mode
-  :config (cmake-font-lock-activate))
-
-;; Clang format takes care of style control
-(use-package clang-format
-  :bind ("C-c f" . clang-format-region))
-
-;; Better c++14 highlighting
-(use-package modern-cpp-font-lock
-  :hook (c++-mode .  modern-c++-font-lock-global-mode))
-
 ;; Keep font lock for certain keywords
 (add-hook 'prog-mode-hook
           (lambda ()
             (when (not (derived-mode-p 'cmake-mode)) ; Highlighting in cmake-mode interferes with font lock
               (font-lock-add-keywords nil '(("\\<\\(FIXME\\|TODO\\)" 1 font-lock-warning-face t))))))
 
-;; Don't color include directives
-(add-hook 'c-mode-common-hook (lambda () (rainbow-mode 0)))
-
 ;; Highlight current line
 (add-hook 'prog-mode-hook 'hl-line-mode)
 
 ;; Display function in mode line
 (add-hook 'prog-mode-hook 'which-function-mode)
+
+;; Line truncation is terrible to read
+(add-hook 'server-after-make-frame-hook 'toggle-truncate-lines)
 
 ;; Delete useless whitespace
 (add-hook 'before-save-hook 'delete-trailing-whitespace)
@@ -707,7 +689,6 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
   :custom-face
   (org-done ((t (:family "DejaVu Sans Mono" :height 135 :bold t))))
   (org-warning ((t (:family "DejaVu Sans Mono" :height 135 :bold t))))
-  (variable-pitch ((t (:family "DejaVu Sans" :height 130))))
   :hook ((org-mode . org-indent-mode)
          (org-mode . visual-line-mode)
          (text-mode . orgstruct-mode))
@@ -737,6 +718,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 
 ;; Automatic capitalisation
 (use-package captain                    ; TODO set this up properly
+  :diminish
   :hook ((text-mode . (lambda () (setq captain-predicate (lambda () t))))
          (org-mode . (lambda () (setq captain-predicate (lambda () t)))))
   :config (global-captain-mode))
@@ -760,9 +742,6 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 
 ;;; end of: Org mode and miscellaneous
 ;;; Aesthetics
-
-;; So it doesn't look like a terminal
-(setq-default cursor-type '(bar . 3))
 
 (setq default-frame-alist '((font . "DejaVu Sans Mono")
                             (tool-bar-lines . 0)
@@ -791,24 +770,21 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 
 ;; Attach to hooks
 (defun server-theme-setup (theme)
-  (load-theme theme t)
-  (set-face-attribute 'mode-line nil :height 110))
-
-(use-package spacemacs-theme
-  :disabled t
-  :no-require                           ; Actual feature is not called spacemacs-theme
-  :init
-  (setq spacemacs-theme-org-height t
-        spacemacs-theme-comment-italic t
-        spacemacs-theme-underline-parens t)
-  :hook (server-after-make-frame . (lambda () (server-theme-setup 'spacemacs-dark))))
+  (if (not (display-graphic-p))
+      (progn
+        (remove-hook 'prog-mode-hook 'hl-line-mode)
+        (set-face-attribute 'company-tooltip nil :background "#120"))
+    (load-theme theme t)
+    (set-face-attribute 'mode-line nil :height 120 :family "Hack")))
 
 (use-package solarized-theme
   :disabled t
   :no-require
   :init
-  (setq solarized-scale-org-headlines t
-        solarized-high-contrast-mode-line t)
+  (setq solarized-scale-org-headlines t)
+  :custom-face
+  (mode-line ((t (:underline nil))))
+  (mode-line-inactive ((t (:underline nil))))
   :hook (server-after-make-frame . (lambda () (server-theme-setup 'solarized-light))))
 
 (use-package gruvbox-theme
@@ -903,16 +879,47 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 ;;; end of: Aesthetics
 ;;; Programming languages
 
-;; Common lisp setup
+;;; Common lisp setup
 (use-package sly
+  :load-path "~/.emacs.d/elpa/sly-20181116.2131/"
   :no-require
   :init
   (setq sly-lisp-implementations '((roswell ("ros" "-Q" "run") :coding-system utf-8-unix))
         common-lisp-hyperspec-root *my-hyperspec-location*))
 
+;;; C languages
+
+(add-hook 'c-mode-common-hook (lambda ()
+                                (progn (setq-local indent-tabs-mode t)
+                                       (setq-local tab-width 4)
+                                       (setq-local c-basic-offset 4)
+                                       (setq-local fill-column 80)
+                                       (toggle-truncate-lines))))
+
+;; Cmake files
+(use-package cmake-mode
+  :mode ("CMakeLists.txt" ".cmake")
+  :hook (cmake-mode . (lambda () (add-to-list 'company-backends 'company-cmake))))
+
+(use-package cmake-font-lock
+  :after cmake-mode
+  :config (cmake-font-lock-activate))
+
+;; Clang format takes care of style control
+(use-package clang-format
+  :bind ("C-c f" . clang-format-region))
+
+;; Better c++14 highlighting
+(use-package modern-cpp-font-lock
+  :hook (c++-mode .  modern-c++-font-lock-global-mode))
+
+;; Don't color include directives
+(add-hook 'c-mode-common-hook (lambda () (rainbow-mode 0)))
+
+;; IDE
 (require 'setup-c)
 
-;; Restore sensible default
+;; Restore sensible GC default
 (setq gc-cons-threshold 20000000)
 
 ;;; init.el ends here

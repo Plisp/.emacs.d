@@ -1,20 +1,12 @@
 ;;;; C/C++ IDE
 
-(add-hook 'c-mode-common-hook (lambda ()
-                                (progn (setq-local indent-tabs-mode t)
-                                       (setq-local tab-width 4)
-                                       (setq-local c-basic-offset 4)
-                                       (setq-local fill-column 80)
-                                       (toggle-truncate-lines))))
-
 ;; Tagging
 (use-package ggtags
   :init
   (setq-local imenu-create-index-function #'ggtags-build-imenu-index)
   (setq ggtags-mode-line-project-name nil
         ggtags-oversize-limit 30000000)
-  :bind (("M-," . pop-tag-mark)
-         ("C-z g" . hydra-ggtags/body))
+  :bind (("M-," . pop-tag-mark))
   :hook ((c++-mode . ggtags-mode)
          (c-mode . ggtags-mode)
          (asm-mode . ggtags-mode)
