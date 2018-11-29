@@ -34,9 +34,6 @@
 ;;; Package configuration management
 (require 'package)
 
-;; After first startup, this line should be commented
-(package-initialize t)
-
 (unless (package-installed-p 'use-package)
   (package-refresh-contents)
   (package-install 'use-package))
@@ -52,22 +49,19 @@
 (require 'diminish)
 
 ;; dependency of use-package
-(eval-when-compile
-  (require 'bind-key))
+(require 'bind-key)
 
 ;; Always install packages if not already available
 (setq use-package-always-ensure t)
 
 ;; Always defer unless explicitly specified otherwise
-;; (setq use-package-always-defer t)
+(setq use-package-always-defer t)
 
 ;; No error checking necessary
 (setq use-package-expand-minimally t)
 
 ;;; Benchmarking
-(use-package benchmark-init :demand t
-  :config
-  (add-hook 'after-init-hook 'benchmark-init/deactivate))
+(use-package esup)
 
 ;;; Misc. setup
 
@@ -81,7 +75,6 @@
 
 ;; load custom file w/o drama
 (setq custom-file (user-dir "custom.el"))
-
 (load custom-file t t)
 
 ;; Need to use server-after-make-frame-hook
@@ -99,7 +92,9 @@ So that I can use the keys elsewhere"
           (define-key input-decode-map [?\C-m] [C-m])
           (define-key input-decode-map [?\C-\[] [C-\[])))))
 
-(add-to-list 'server-after-make-frame-hook 'unmap-keys t)
+(add-hook 'server-after-make-frame-hook #'unmap-keys)
+
+(when (display-graphic-p) (unmap-keys))
 
 ;; Stolen from emacs redux
 (defun smarter-move-beginning-of-line (arg)
@@ -107,7 +102,7 @@ So that I can use the keys elsewhere"
 and the beginning of the line depending on arg."
   (interactive "^p")
   (setq arg (or arg 1))
-  ;; Move lines first
+
   (when (/= arg 1)
     (let ((line-move-visual nil))
       (forward-line (1- arg))))
@@ -157,7 +152,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 ;; (global-set-key "\C-z" 'z-keymap)
 
 ;; Cause killing the server to ask first
-(add-hook 'kill-emacs-hook 'save-some-buffers)
+(add-hook 'kill-emacs-hook #'save-some-buffers)
 
 (global-set-key [remap save-buffers-kill-terminal] 'kill-emacs)
 
@@ -175,12 +170,13 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 
 ;; Simplify mode line symbols
 (use-package diminish :demand t
-  :config
-  (diminish 'auto-revert-mode)
-  (diminish 'eldoc-mode))
+             :config
+             (diminish 'auto-revert-mode)
+             (diminish 'eldoc-mode))
 
 ;; Install binaries using system package manager
-(use-package use-package-ensure-system-package)
+;; breaks because package names vary - causes 100% cpu bug
+;; (use-package use-package-ensure-system-package)
 
 ;; Help with finding cursor
 (use-package beacon
@@ -210,8 +206,8 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 ;; Minibuffer completion frontend
 (use-package ivy
   :diminish
-  :init (ivy-mode)
   :bind (("C-c C-r" . ivy-resume)
+         ("C-x b" . ivy-switch-buffer)
          :map ivy-minibuffer-map
          ("C-c C-r" . ivy-reverse-i-search)
          ("C-r" . ivy-previous-line-or-history))
@@ -233,6 +229,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 
 ;; ;; another fuzzy package (not quite good enough yet)
 ;; (use-package prescient
+
 ;;   :init (setq prescient-save-file (user-dir "presc-save.el"))
 ;;   :config (prescient-persist-mode))
 
@@ -248,6 +245,8 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
   :bind (("C-x C-f" . counsel-find-file)
          ("C-c j" . counsel-git)
          ("C-c r" . counsel-rg)
+         ("C-h v" . counsel-describe-variable)
+         ("C-h f" . counsel-describe-function)
          ("M-Y" . counsel-yank-pop)
          ("<f5>" . counsel-unicode-char)
          ("C-s" . counsel-grep-or-swiper)
@@ -258,18 +257,19 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
                 counsel-grep-base-command "rg -i -M 120 --no-heading --line-number --color never '%s' %s"
                 counsel-git-cmd "rg --files"))
 
-;; Better fuzzy matching for smex
-(use-package flx)
-
-;; flx integration for smex
-(use-package flx-ido
-  :config (flx-ido-mode))
-
 ;; Counsel-M-x unnecessarily obscures my window
 (use-package smex
   :init (smex-initialize)
   :bind (("M-x" . smex)
-         ("M-X" . smex-major-mode-commands)))
+         ("M-X" . smex-major-mode-commands))
+  :config
+  (use-package flx :demand t)
+  (use-package flx-ido :demand t
+               :config (flx-ido-mode)))
+
+;; flx integration for smex
+(use-package flx-ido
+  :config (flx-ido-mode))
 
 ;;; end of: Essential packages
 ;;; General settings
@@ -280,10 +280,10 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
               ring-bell-function 'ignore
               tab-width 2
               truncate-lines t
-              ;; files.el
-              version-control t
               ;; ediff-wind.el
-              ediff-split-window-function 'split-window-horizontally)
+              ediff-split-window-function 'split-window-horizontally
+              ;; files.el
+              version-control t)
 
 (setq auto-window-vscroll nil
       inhibit-startup-screen t
@@ -293,25 +293,26 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
       use-dialog-box nil
       x-stretch-cursor t
       word-wrap t
-      ;; Files.el
+      ;; del-sel.el
+      delete-selection-mode t
+      ;; files.el
       delete-old-versions t
       save-silently t
       auto-save-default nil
       backup-directory-alist `(("." . ,(user-dir "backups")))
-      ;; vc-hooks.el
-      vc-make-backup-files t
-      vc-follow-symlinks t
+      ;; font-core.el
+      global-font-lock-mode t
+      ;; select.el
+      select-enable-clipboard t
+      select-enable-primary t
       ;; simple.el
       blink-matching-delay 0
       column-number-mode t
-      ;; del-sel.el
-      delete-selection-mode t
       ;; startup.el
       initial-scratch-message "Emacs is love, Emacs is life"
-      ;; font-core.el
-      global-font-lock-mode t)
-
-(defvar *my-hyperspec-location* "file://home/plisp/.roswell/lisp/quicklisp/dists/quicklisp/software/clhs-0.6.3/HyperSpec-7-0/HyperSpec/")
+      ;; vc-hooks.el
+      vc-make-backup-files t
+      vc-follow-symlinks t)
 
 ;; Y-or-n is much faster
 (fset 'yes-or-no-p 'y-or-n-p)
@@ -326,8 +327,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 (prefer-coding-system 'utf-8)
 
 ;; Coding preference for pasted strings
-(when (display-graphic-p)
-  (setq x-select-request-type '(UTF8_STRING COMPOUND_TEXT TEXT STRING)))
+(setq x-select-request-type '(UTF8_STRING COMPOUND_TEXT TEXT STRING))
 
 ;; Fallback font for utf-8 chars
 (set-fontset-font "fontset-default" nil (font-spec :size 90 :name "Symbola"))
@@ -335,46 +335,45 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 ;; Default font
 (set-face-attribute 'default nil :height 124)
 
+;; Color theme
+(defvar *color-theme* 'doom-one)
+
+;; Local hyperspec location
+(defvar *my-hyperspec-location* "file://home/plisp/.roswell/lisp/quicklisp/dists/quicklisp/software/clhs-0.6.3/HyperSpec-7-0/HyperSpec/")
+
 ;;; end of: General settings
 ;;; EmacsWiki packages - enable as necessary
 
 ;; Better dired (note: it is highly recommended to byte compile this)
 ;; maintained version: https://www.emacswiki.org/emacs/download/dired%2B.el
 (use-package dired+ :ensure nil
-  :disabled t
-  :after dired
-  :hook (dired-mode . (lambda () (dired-hide-details-mode -1)))
-  :config (setq dired-listing-switches "-alh"))
+             :disabled t
+             :after dired
+             :hook (dired-mode . (lambda () (dired-hide-details-mode -1)))
+             :config (setq dired-listing-switches "-alh"))
 
 ;; Better window resizing: https://github.com/ramnes/move-border
 (use-package move-border :ensure nil
-  :disabled t
-  :bind (("M-S-<up>" . move-border-up)
-         ("M-S-<down>" . move-border-down)
-         ("M-S-<left>" . move-border-left)
-         ("M-S-<right>" . move-border-right)))
+             :disabled t
+             :bind (("M-S-<up>" . move-border-up)
+                    ("M-S-<down>" . move-border-down)
+                    ("M-S-<left>" . move-border-left)
+                    ("M-S-<right>" . move-border-right)))
 
 ;; Get weather status in mode line: https://github.com/zk-phi/sky-color-clock
 (use-package sky-color-clock :ensure nil
-  :disabled t
-  :config
-  ;; Change to your region's latitude
-  (sky-color-clock-initialize -34)
-  ;; Sign up on openweathermap for API key and city IDs
-  (sky-color-clock-initialize-openweathermap-client "ce527c830c7fee7d3b0efc7e4c84da58" 6619279))
+             :disabled t
+             :config
+             ;; Change to your region's latitude
+             (sky-color-clock-initialize -34)
+             ;; Sign up on openweathermap for API key and city IDs
+             (sky-color-clock-initialize-openweathermap-client "ce527c830c7fee7d3b0efc7e4c84da58" 6619279))
 
 ;; Flip between buffers fast: https://github.com/jrosdahl/iflipb
 (use-package iflipb :ensure nil
-  :disabled t
-  :bind (([M-tab] . iflipb-next-buffer)
-         ([M-iso-lefttab] . iflipb-previous-buffer))) ; Meta-Shift-Tab
-
-;; i3 integration: https://github.com/vava/i3-emacs
-(use-package i3 :ensure nil
-  :disabled t
-  :commands i3-one-window-per-frame-mode-on
-  :hook (window-configuration-change . i3-one-window-per-frame-mode-on)
-  :config (require 'i3-integration))
+             :disabled t
+             :bind (([M-tab] . iflipb-next-buffer)
+                    ([M-iso-lefttab] . iflipb-previous-buffer))) ; Meta-Shift-Tab
 
 (autoload 'dired-jump-other-window "/usr/local/share/emacs/27.0.50/lisp/dired-x.elc")
 (global-set-key (kbd "C-x C-j") 'dired-jump-other-window)
@@ -386,9 +385,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 (use-package vlf :no-require)
 
 ;; Color code highlighting
-(use-package rainbow-mode
-  :diminish
-  :hook (prog-mode . rainbow-mode))
+(use-package rainbow-mode)
 
 ;; Edit grep results directly
 (use-package wgrep :no-require)
@@ -424,7 +421,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 (use-package json-mode :mode (".json" ".imp"))
 
 (use-package asm-mode :ensure nil
-  :hook (asm-mode . (lambda () (setq-local tab-stop-list (number-sequence 2 60 2)))))
+             :hook (asm-mode . (lambda () (setq-local tab-stop-list (number-sequence 2 60 2)))))
 
 ;; Show highlighted region
 (use-package volatile-highlights
@@ -439,7 +436,6 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 
 ;; Show position in buffer
 (use-package nyan-mode
-  :hook (org-mode prog-mode)
   :config (nyan-toggle-wavy-trail))
 
 ;; Parentheses management
@@ -550,10 +546,10 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 ;; (setq-default electric-indent-inhibit t)
 
 (use-package compile :ensure nil
-  :config
-  (setq compilation-ask-about-save nil
-        compilation-always-kill t
-        compilation-scroll-output 'first-error))
+             :config
+             (setq compilation-ask-about-save nil
+                   compilation-always-kill t
+                   compilation-scroll-output 'first-error))
 
 ;; Project management
 (use-package projectile
@@ -672,52 +668,49 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
               (font-lock-add-keywords nil '(("\\<\\(FIXME\\|TODO\\)" 1 font-lock-warning-face t))))))
 
 ;; Highlight current line
-(add-hook 'prog-mode-hook 'hl-line-mode)
+(add-hook 'prog-mode-hook #'hl-line-mode)
 
 ;; Display function in mode line
-(add-hook 'prog-mode-hook 'which-function-mode)
-
-;; Line truncation is terrible to read
-(add-hook 'server-after-make-frame-hook 'toggle-truncate-lines)
+(add-hook 'prog-mode-hook #'which-function-mode)
 
 ;; Delete useless whitespace
-(add-hook 'before-save-hook 'delete-trailing-whitespace)
+(add-hook 'before-save-hook #'delete-trailing-whitespace)
 
 ;; Automatically make scripts executable
-(add-hook 'after-save-hook 'executable-make-buffer-file-executable-if-script-p)
+(add-hook 'after-save-hook #'executable-make-buffer-file-executable-if-script-p)
 
 ;;; end of: Programming
 ;;; Org mode and miscellaneous
 
 ;; Note: remember to ensure latest version (from org development repository) is installed for features
 (use-package org :ensure org-plus-contrib :pin org
-  :after all-the-icons
-  :bind (("C-c a" . org-agenda)
-         ("C-c l" . org-store-link)
-         ("C-c c" . org-capture)
-         ("C-c b" . org-switchb))
-  :hook ((org-mode . org-indent-mode)
-         (org-mode . visual-line-mode)
-         (text-mode . orgstruct-mode))
-  :config
-  (setq org-log-done 'time
-        org-use-speed-commands t
-        org-list-demote-modify-bullet t
-        org-list-allow-alphabetical t
-        org-src-tab-acts-natively t
-        org-preview-latex-default-process 'convert
-        org-archive-location "~/org/archive.org::* Archives"
-        org-agenda-files '("~/org/misc.org" "~/org/school.org" "~/org/system.org")
-        org-agenda-restore-windows-after-quit t
-        org-agenda-inhibit-startup nil
-        org-ellipsis " ⬎"
-        org-todo-keywords '((sequence "TODO(t)" "IN-PROGRESS(i)" "|" "DONE(d)" "CANCELLED(c)"))
-        org-agenda-category-icon-alist `(("misc" ,(list (all-the-icons-faicon "bomb")) nil nil :ascent center)
-                                         ("system" ,(list (all-the-icons-material "computer")) nil nil :ascent center)
-                                         ("school" ,(list (all-the-icons-faicon "book")) nil nil :ascent center))
-        org-todo-keyword-faces '(("TODO" . org-warning)
-                                 ("IN-PROGRESS" . (:inherit org-warning :foreground "green"))
-                                 ("CANCELLED" . (:inherit org-done :foreground "yellow")))))
+             :after all-the-icons
+             :bind (("C-c a" . org-agenda)
+                    ("C-c l" . org-store-link)
+                    ("C-c c" . org-capture)
+                    ("C-c b" . org-switchb))
+             :hook ((org-mode . org-indent-mode)
+                    (org-mode . visual-line-mode)
+                    (text-mode . orgstruct-mode))
+             :config
+             (setq org-log-done 'time
+                   org-use-speed-commands t
+                   org-list-demote-modify-bullet t
+                   org-list-allow-alphabetical t
+                   org-src-tab-acts-natively t
+                   org-preview-latex-default-process 'convert
+                   org-archive-location "~/org/archive.org::* Archives"
+                   org-agenda-files '("~/org/misc.org" "~/org/school.org" "~/org/system.org")
+                   org-agenda-restore-windows-after-quit t
+                   org-agenda-inhibit-startup nil
+                   org-ellipsis " ⬎"
+                   org-todo-keywords '((sequence "TODO(t)" "IN-PROGRESS(i)" "|" "DONE(d)" "CANCELLED(c)"))
+                   org-agenda-category-icon-alist `(("misc" ,(list (all-the-icons-faicon "bomb")) nil nil :ascent center)
+                                                    ("system" ,(list (all-the-icons-material "computer")) nil nil :ascent center)
+                                                    ("school" ,(list (all-the-icons-faicon "book")) nil nil :ascent center))
+                   org-todo-keyword-faces '(("TODO" . org-warning)
+                                            ("IN-PROGRESS" . (:inherit org-warning :foreground "green"))
+                                            ("CANCELLED" . (:inherit org-done :foreground "yellow")))))
 
 ;; fancy bullets
 (use-package org-bullets
@@ -765,22 +758,19 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 ;;; end of: Org mode and miscellaneous
 ;;; Aesthetics
 
-(defvar *color-theme* 'doom-nord)
+;; Remove junk
+(tool-bar-mode -1)
+(menu-bar-mode -1)
+(scroll-bar-mode -1)
 
-(setq default-frame-alist '((font . "DejaVu Sans Mono")
-                            (tool-bar-lines . 0)
-                            (menu-bar-lines . 0)
-                            (horizontal-scroll-bar . nil)
-                            (vertical-scroll-bars . nil)
-                            (fullscreen . maximized)
-                            (left-fringe . 2)
-                            (right-fringe . 6)))
+(setq left-fringe-width 2
+      right-fringe-width 6)
 
 ;; Fancy icons
 (use-package all-the-icons :demand t
-  :init
-  ;; Don't cause garbage collection during startup
-  (setq inhibit-compacting-font-caches t))
+             :init
+             ;; Don't cause garbage collection during startup
+             (setq inhibit-compacting-font-caches t))
 
 ;; Dired support
 (use-package all-the-icons-dired
@@ -792,114 +782,110 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
   :after (all-the-icons ivy)
   :config (all-the-icons-ivy-setup))
 
-;; Use pl-server-theme-setup if using client
-(if (daemonp)
-    (add-hook 'server-after-make-frame-hook 'pl-server-theme-setup)
-  (load-theme *color-theme* t))
-
-;; Prevents duplicate loading of *color-theme*
-(defun pl-server-theme-setup ()
-  "Load theme once only "
-  (load-theme *color-theme* t)
-  (if (display-graphic-p)
-      (progn
-        ;; Fix mode line appearance in GUI
-        (set-face-attribute 'mode-line nil :height 120 :family "Hack")
-        ;; Don't run the function again
-        (remove-hook 'server-after-make-frame-hook 'pl-server-theme-setup))))
-
+;; Color themes
 (use-package doom-themes
   :config
   (doom-themes-org-config))
 
+(defun pl-color-theme-setup ()
+  (progn
+    (load-theme *color-theme* t)
+    (set-face-attribute 'mode-line nil :height 120 :family "Hack")
+    (remove-hook 'server-after-make-frame-hook 'pl-color-theme-setup)))
+
+;; Color theme setup
+(when (daemonp) (add-hook 'server-after-make-frame-hook #'pl-color-theme-setup))
+
+;; If not running daemon
+(when (display-graphic-p) (load-theme *color-theme* t))
+
 ;; Mode line eye candy
 (use-package powerline :demand t
-  :init
-  (setq powerline-default-separator 'arrow)
-  ;; My powerline - now with fancy inline symbols (note: remember to change icon size when font size changes)
-  (defun my-powerline-theme ()
-    (interactive)
-    (setq-default mode-line-format
-                  '("%e"
-                    (:eval
-                     (let* ((active (powerline-selected-window-active))
-                            (mode-line-buffer-id (if active 'mode-line-buffer-id 'mode-line-buffer-id-inactive))
-                            (mode-line (if active 'mode-line 'mode-line-inactive))
-                            (face0 (if active 'powerline-active0 'powerline-inactive0))
-                            (face1 (if active 'powerline-active1 'powerline-inactive1))
-                            (face2 (if active 'powerline-active2 'powerline-inactive2))
+             :init
+             (setq powerline-default-separator 'arrow)
+             ;; My powerline - now with fancy inline symbols (note: remember to change icon size when font size changes)
+             (defun my-powerline-theme ()
+               (interactive)
+               (setq-default mode-line-format
+                             '("%e"
+                               (:eval
+                                (let* ((active (powerline-selected-window-active))
+                                       (mode-line-buffer-id (if active 'mode-line-buffer-id 'mode-line-buffer-id-inactive))
+                                       (mode-line (if active 'mode-line 'mode-line-inactive))
+                                       (face0 (if active 'powerline-active0 'powerline-inactive0))
+                                       (face1 (if active 'powerline-active1 'powerline-inactive1))
+                                       (face2 (if active 'powerline-active2 'powerline-inactive2))
 
-                            (separator-left (intern (format "powerline-%s-%s"
-                                                            (powerline-current-separator)
-                                                            (car powerline-default-separator-dir))))
+                                       (separator-left (intern (format "powerline-%s-%s"
+                                                                       (powerline-current-separator)
+                                                                       (car powerline-default-separator-dir))))
 
-                            (separator-right (intern (format "powerline-%s-%s"
-                                                             (powerline-current-separator)
-                                                             (cdr powerline-default-separator-dir))))
+                                       (separator-right (intern (format "powerline-%s-%s"
+                                                                        (powerline-current-separator)
+                                                                        (cdr powerline-default-separator-dir))))
 
-                            (lhs (list (powerline-raw "%*" face0 'l)
-                                       (when (buffer-file-name (current-buffer))
-                                         (powerline-buffer-id `(mode-line-buffer-id ,face0) 'r))
-                                       (powerline-vc face0 'r)
-                                       (when (and (buffer-file-name (current-buffer)) vc-mode)
-                                         (if (and window-system (not powerline-gui-use-vcs-glyph))
-                                             (powerline-raw
-                                              (all-the-icons-octicon
-                                               "git-branch"
-                                               :face face0 :v-adjust 0.05) face0 'r)))
+                                       (lhs (list (powerline-raw "%*" face0 'l)
+                                                  (when (buffer-file-name (current-buffer))
+                                                    (powerline-buffer-id `(mode-line-buffer-id ,face0) 'r))
+                                                  (powerline-vc face0 'r)
+                                                  (when (and (buffer-file-name (current-buffer)) vc-mode)
+                                                    (if (and window-system (not powerline-gui-use-vcs-glyph))
+                                                        (powerline-raw
+                                                         (all-the-icons-octicon
+                                                          "git-branch"
+                                                          :face face0 :v-adjust 0.05) face0 'r)))
 
-                                       (funcall separator-left face0 face1)
+                                                  (funcall separator-left face0 face1)
 
-                                       (when (assoc major-mode all-the-icons-mode-icon-alist)
-                                         (powerline-raw
-                                          (all-the-icons-icon-for-mode
-                                           major-mode
-                                           :face face1 :height 0.9 :v-adjust 0.01) face1 'l))
-                                       (powerline-major-mode face1 'l)
-                                       (when (and (not (equal major-mode 'org-mode))
-                                                  (boundp 'which-function-mode)
-                                                  which-function-mode)
-                                         (powerline-raw which-func-format face1 'l))
-                                       (powerline-process face1)
-                                       (powerline-narrow face1 'l)
-                                       (powerline-raw " " face1)
+                                                  (when (assoc major-mode all-the-icons-mode-icon-alist)
+                                                    (powerline-raw
+                                                     (all-the-icons-icon-for-mode
+                                                      major-mode
+                                                      :face face1 :height 0.9 :v-adjust 0.01) face1 'l))
+                                                  (powerline-major-mode face1 'l)
+                                                  (when (and (not (equal major-mode 'org-mode))
+                                                             (boundp 'which-function-mode)
+                                                             which-function-mode)
+                                                    (powerline-raw which-func-format face1 'l))
+                                                  (powerline-process face1)
+                                                  (powerline-narrow face1 'l)
+                                                  (powerline-raw " " face1)
 
-                                       (funcall separator-left face1 face2)
+                                                  (funcall separator-left face1 face2)
 
-                                       (when powerline-display-buffer-size
-                                         (powerline-buffer-size face2 'l))
-                                       (powerline-raw "[" face2 'l)
-                                       (when (bound-and-true-p nyan-mode)
-                                         (powerline-raw (list (nyan-create)) face2))
-                                       (powerline-raw "]" face2)
-                                       (powerline-raw "%l:%c " face2 'l)))
+                                                  (when powerline-display-buffer-size
+                                                    (powerline-buffer-size face2 'l))
+                                                  (powerline-raw "[" face2 'l)
+                                                  (when (bound-and-true-p nyan-mode)
+                                                    (powerline-raw (list (nyan-create)) face2))
+                                                  (powerline-raw "]" face2)
+                                                  (powerline-raw "%l:%c " face2 'l)))
 
-                            (rhs (list (funcall separator-right face2 face1)
-                                       (powerline-raw " " face1)
-                                       (powerline-minor-modes face1 'r)
+                                       (rhs (list (funcall separator-right face2 face1)
+                                                  (powerline-raw " " face1)
+                                                  (powerline-minor-modes face1 'r)
 
-                                       (funcall separator-right face1 face0)
+                                                  (funcall separator-right face1 face0)
 
                                         ;(powerline-raw (sky-color-clock) face0 'l)
-                                       (when powerline-display-mule-info
-                                         (powerline-raw mode-line-mule-info face0 'l))
-                                       (powerline-fill face0 0))))
+                                                  (when powerline-display-mule-info
+                                                    (powerline-raw mode-line-mule-info face0 'l))
+                                                  (powerline-fill face0 0))))
 
-                       (concat (powerline-render lhs)
-                               (powerline-fill face2 (powerline-width rhs))
-                               (powerline-render rhs)))))))
-  :custom-face
-  ;; (powerline-active0 ((t (:background "#191229" :foreground "#888"))))
-  ;; (powerline-active1 ((t (:background "#2d353a" :foreground "#bbb"))))
-  ;; (powerline-active2 ((t (:background "#5c656b" :foreground "#eee"))))
-  :config (my-powerline-theme))
+                                  (concat (powerline-render lhs)
+                                          (powerline-fill face2 (powerline-width rhs))
+                                          (powerline-render rhs)))))))
+             :custom-face
+             ;; (powerline-active0 ((t (:background "#191229" :foreground "#888"))))
+             ;; (powerline-active1 ((t (:background "#2d353a" :foreground "#bbb"))))
+             ;; (powerline-active2 ((t (:background "#5c656b" :foreground "#eee"))))
+             :config (my-powerline-theme))
 
 ;;; end of: Aesthetics
 ;;; Programming languages
 
 ;;; Common lisp setup
 (use-package sly
-  :commands sly
   :init
   (add-to-list 'load-path (car (file-expand-wildcards "~/.emacs.d/elpa/sly-*")))
   :config
@@ -912,8 +898,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
                                 (progn (setq-local indent-tabs-mode t)
                                        (setq-local tab-width 4)
                                        (setq-local c-basic-offset 4)
-                                       (setq-local fill-column 80)
-                                       (toggle-truncate-lines))))
+                                       (setq-local fill-column 80))))
 
 ;; Cmake files
 (use-package cmake-mode
@@ -931,9 +916,6 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 ;; Better c++14 highlighting
 (use-package modern-cpp-font-lock
   :hook (c++-mode .  modern-c++-font-lock-global-mode))
-
-;; Don't color include directives
-(add-hook 'c-mode-common-hook (lambda () (rainbow-mode 0)))
 
 ;; IDE
 ;;(require 'setup-c)
