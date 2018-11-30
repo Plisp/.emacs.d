@@ -1,5 +1,18 @@
 ;;; C/c++ IDE features leveraging ccls TODO setup advanced
 
+(progn (setq-local indent-tabs-mode t)
+       (setq-local tab-width 4)
+       (setq-local c-basic-offset 4)
+       (setq-local fill-column 80))
+
+;; Clang format takes care of style control
+(use-package clang-format
+  :bind ("C-c f" . clang-format-region))
+
+;; Better c++14 highlighting
+(use-package modern-cpp-font-lock
+  :hook (c++-mode .  modern-c++-font-lock-global-mode))
+
 (use-package lsp-mode
   :hook ((c-mode . lsp-mode)
          (c++-mode . lsp-mode)))

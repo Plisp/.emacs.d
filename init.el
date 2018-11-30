@@ -170,9 +170,9 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 
 ;; Simplify mode line symbols
 (use-package diminish :demand t
-             :config
-             (diminish 'auto-revert-mode)
-             (diminish 'eldoc-mode))
+  :config
+  (diminish 'auto-revert-mode)
+  (diminish 'eldoc-mode))
 
 ;; Install binaries using system package manager
 ;; breaks because package names vary - causes 100% cpu bug
@@ -185,6 +185,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 
 ;; Help with keybindings
 (use-package which-key
+  :defer 0.5
   :diminish
   :config (which-key-mode)
   (setq which-key-idle-delay 0.5))
@@ -207,10 +208,10 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 (use-package ivy
   :diminish
   :bind (("C-c C-r" . ivy-resume)
-         ("C-x b" . ivy-switch-buffer)
          :map ivy-minibuffer-map
          ("C-c C-r" . ivy-reverse-i-search)
          ("C-r" . ivy-previous-line-or-history))
+  :hook (minibuffer-setup . ivy-mode)
   :config
   (setq enable-recursive-minibuffers t
         ivy-count-format "(%d/%d) "
@@ -265,7 +266,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
   :config
   (use-package flx :demand t)
   (use-package flx-ido :demand t
-               :config (flx-ido-mode)))
+    :config (flx-ido-mode)))
 
 ;; flx integration for smex
 (use-package flx-ido
@@ -306,7 +307,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
       select-enable-clipboard t
       select-enable-primary t
       ;; simple.el
-      blink-matching-delay 0
+      blink-matching-delay -1
       column-number-mode t
       ;; startup.el
       initial-scratch-message "Emacs is love, Emacs is life"
@@ -347,35 +348,35 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 ;; Better dired (note: it is highly recommended to byte compile this)
 ;; maintained version: https://www.emacswiki.org/emacs/download/dired%2B.el
 (use-package dired+ :ensure nil
-             :disabled t
-             :after dired
-             :hook (dired-mode . (lambda () (dired-hide-details-mode -1)))
-             :config (setq dired-listing-switches "-alh"))
+  :disabled t
+  :after dired
+  :hook (dired-mode . (lambda () (dired-hide-details-mode -1)))
+  :config (setq dired-listing-switches "-alh"))
 
 ;; Better window resizing: https://github.com/ramnes/move-border
 (use-package move-border :ensure nil
-             :disabled t
-             :bind (("M-S-<up>" . move-border-up)
-                    ("M-S-<down>" . move-border-down)
-                    ("M-S-<left>" . move-border-left)
-                    ("M-S-<right>" . move-border-right)))
+  :disabled t
+  :bind (("M-S-<up>" . move-border-up)
+         ("M-S-<down>" . move-border-down)
+         ("M-S-<left>" . move-border-left)
+         ("M-S-<right>" . move-border-right)))
 
 ;; Get weather status in mode line: https://github.com/zk-phi/sky-color-clock
 (use-package sky-color-clock :ensure nil
-             :disabled t
-             :config
-             ;; Change to your region's latitude
-             (sky-color-clock-initialize -34)
-             ;; Sign up on openweathermap for API key and city IDs
-             (sky-color-clock-initialize-openweathermap-client "ce527c830c7fee7d3b0efc7e4c84da58" 6619279))
+  :disabled t
+  :config
+  ;; Change to your region's latitude
+  (sky-color-clock-initialize -34)
+  ;; Sign up on openweathermap for API key and city IDs
+  (sky-color-clock-initialize-openweathermap-client "ce527c830c7fee7d3b0efc7e4c84da58" 6619279))
 
 ;; Flip between buffers fast: https://github.com/jrosdahl/iflipb
 (use-package iflipb :ensure nil
-             :disabled t
-             :bind (([M-tab] . iflipb-next-buffer)
-                    ([M-iso-lefttab] . iflipb-previous-buffer))) ; Meta-Shift-Tab
+  :disabled t
+  :bind (([M-tab] . iflipb-next-buffer)
+         ([M-iso-lefttab] . iflipb-previous-buffer))) ; Meta-Shift-Tab
 
-(autoload 'dired-jump-other-window "/usr/local/share/emacs/27.0.50/lisp/dired-x.elc")
+(autoload #'dired-jump-other-window "/usr/local/share/emacs/27.0.50/lisp/dired-x.elc")
 (global-set-key (kbd "C-x C-j") 'dired-jump-other-window)
 
 ;;; end of: EmacsWiki packages
@@ -421,7 +422,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 (use-package json-mode :mode (".json" ".imp"))
 
 (use-package asm-mode :ensure nil
-             :hook (asm-mode . (lambda () (setq-local tab-stop-list (number-sequence 2 60 2)))))
+  :hook (asm-mode . (lambda () (setq-local tab-stop-list (number-sequence 2 60 2)))))
 
 ;; Show highlighted region
 (use-package volatile-highlights
@@ -546,10 +547,10 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 ;; (setq-default electric-indent-inhibit t)
 
 (use-package compile :ensure nil
-             :config
-             (setq compilation-ask-about-save nil
-                   compilation-always-kill t
-                   compilation-scroll-output 'first-error))
+  :config
+  (setq compilation-ask-about-save nil
+        compilation-always-kill t
+        compilation-scroll-output 'first-error))
 
 ;; Project management
 (use-package projectile
@@ -595,7 +596,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 
 ;; Magit TODO setup
 (use-package magit
-  :defer t
+  :bind ("C-c g" . magit-status)
   :config
   (setq magit-completing-read-function 'ivy-completing-read))
 
@@ -606,6 +607,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
   (setq git-gutter:update-interval 5))
 
 ;; Snippets
+
 (use-package yasnippet
   :bind (("C-c y i" . yas-insert-snippet)
          ("C-c y h" . yas-describe-tables)
@@ -684,33 +686,33 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 
 ;; Note: remember to ensure latest version (from org development repository) is installed for features
 (use-package org :ensure org-plus-contrib :pin org
-             :after all-the-icons
-             :bind (("C-c a" . org-agenda)
-                    ("C-c l" . org-store-link)
-                    ("C-c c" . org-capture)
-                    ("C-c b" . org-switchb))
-             :hook ((org-mode . org-indent-mode)
-                    (org-mode . visual-line-mode)
-                    (text-mode . orgstruct-mode))
-             :config
-             (setq org-log-done 'time
-                   org-use-speed-commands t
-                   org-list-demote-modify-bullet t
-                   org-list-allow-alphabetical t
-                   org-src-tab-acts-natively t
-                   org-preview-latex-default-process 'convert
-                   org-archive-location "~/org/archive.org::* Archives"
-                   org-agenda-files '("~/org/misc.org" "~/org/school.org" "~/org/system.org")
-                   org-agenda-restore-windows-after-quit t
-                   org-agenda-inhibit-startup nil
-                   org-ellipsis " ⬎"
-                   org-todo-keywords '((sequence "TODO(t)" "IN-PROGRESS(i)" "|" "DONE(d)" "CANCELLED(c)"))
-                   org-agenda-category-icon-alist `(("misc" ,(list (all-the-icons-faicon "bomb")) nil nil :ascent center)
-                                                    ("system" ,(list (all-the-icons-material "computer")) nil nil :ascent center)
-                                                    ("school" ,(list (all-the-icons-faicon "book")) nil nil :ascent center))
-                   org-todo-keyword-faces '(("TODO" . org-warning)
-                                            ("IN-PROGRESS" . (:inherit org-warning :foreground "green"))
-                                            ("CANCELLED" . (:inherit org-done :foreground "yellow")))))
+  :after all-the-icons
+  :bind (("C-c a" . org-agenda)
+         ("C-c l" . org-store-link)
+         ("C-c c" . org-capture)
+         ("C-c b" . org-switchb))
+  :hook ((org-mode . org-indent-mode)
+         (org-mode . visual-line-mode)
+         (text-mode . orgstruct-mode))
+  :config
+  (setq org-log-done 'time
+        org-use-speed-commands t
+        org-list-demote-modify-bullet t
+        org-list-allow-alphabetical t
+        org-src-tab-acts-natively t
+        org-preview-latex-default-process 'convert
+        org-archive-location "~/org/archive.org::* Archives"
+        org-agenda-files '("~/org/misc.org" "~/org/school.org" "~/org/system.org")
+        org-agenda-restore-windows-after-quit t
+        org-agenda-inhibit-startup nil
+        org-ellipsis " ⬎"
+        org-todo-keywords '((sequence "TODO(t)" "IN-PROGRESS(i)" "|" "DONE(d)" "CANCELLED(c)"))
+        org-agenda-category-icon-alist `(("misc" ,(list (all-the-icons-faicon "bomb")) nil nil :ascent center)
+                                         ("system" ,(list (all-the-icons-material "computer")) nil nil :ascent center)
+                                         ("school" ,(list (all-the-icons-faicon "book")) nil nil :ascent center))
+        org-todo-keyword-faces '(("TODO" . org-warning)
+                                 ("IN-PROGRESS" . (:inherit org-warning :foreground "green"))
+                                 ("CANCELLED" . (:inherit org-done :foreground "yellow")))))
 
 ;; fancy bullets
 (use-package org-bullets
@@ -767,10 +769,11 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
       right-fringe-width 6)
 
 ;; Fancy icons
-(use-package all-the-icons :demand t
-             :init
-             ;; Don't cause garbage collection during startup
-             (setq inhibit-compacting-font-caches t))
+(use-package all-the-icons
+  :defer 0.3
+  :init
+  ;; Don't cause garbage collection during startup
+  (setq inhibit-compacting-font-caches t))
 
 ;; Dired support
 (use-package all-the-icons-dired
@@ -800,107 +803,99 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 (when (display-graphic-p) (load-theme *color-theme* t))
 
 ;; Mode line eye candy
-(use-package powerline :demand t
-             :init
-             (setq powerline-default-separator 'arrow)
-             ;; My powerline - now with fancy inline symbols (note: remember to change icon size when font size changes)
-             (defun my-powerline-theme ()
-               (interactive)
-               (setq-default mode-line-format
-                             '("%e"
-                               (:eval
-                                (let* ((active (powerline-selected-window-active))
-                                       (mode-line-buffer-id (if active 'mode-line-buffer-id 'mode-line-buffer-id-inactive))
-                                       (mode-line (if active 'mode-line 'mode-line-inactive))
-                                       (face0 (if active 'powerline-active0 'powerline-inactive0))
-                                       (face1 (if active 'powerline-active1 'powerline-inactive1))
-                                       (face2 (if active 'powerline-active2 'powerline-inactive2))
+(use-package powerline
+  :defer 0.6
+  ;;:disabled t
+  :after all-the-icons
+  :init
+  (setq powerline-default-separator 'arrow)
+  ;; My powerline - now with fancy inline symbols (note: remember to change icon size when font size changes)
+  (defun my-powerline-theme ()
+    (interactive)
+    (setq-default mode-line-format
+                  '("%e"
+                    (:eval
+                     (let* ((active (powerline-selected-window-active))
+                            (mode-line-buffer-id (if active 'mode-line-buffer-id 'mode-line-buffer-id-inactive))
+                            (mode-line (if active 'mode-line 'mode-line-inactive))
+                            (face0 (if active 'powerline-active0 'powerline-inactive0))
+                            (face1 (if active 'powerline-active1 'powerline-inactive1))
+                            (face2 (if active 'powerline-active2 'powerline-inactive2))
 
-                                       (separator-left (intern (format "powerline-%s-%s"
-                                                                       (powerline-current-separator)
-                                                                       (car powerline-default-separator-dir))))
+                            (separator-left (intern (format "powerline-%s-%s"
+                                                            (powerline-current-separator)
+                                                            (car powerline-default-separator-dir))))
 
-                                       (separator-right (intern (format "powerline-%s-%s"
-                                                                        (powerline-current-separator)
-                                                                        (cdr powerline-default-separator-dir))))
+                            (separator-right (intern (format "powerline-%s-%s"
+                                                             (powerline-current-separator)
+                                                             (cdr powerline-default-separator-dir))))
 
-                                       (lhs (list (powerline-raw "%*" face0 'l)
-                                                  (when (buffer-file-name (current-buffer))
-                                                    (powerline-buffer-id `(mode-line-buffer-id ,face0) 'r))
-                                                  (powerline-vc face0 'r)
-                                                  (when (and (buffer-file-name (current-buffer)) vc-mode)
-                                                    (if (and window-system (not powerline-gui-use-vcs-glyph))
-                                                        (powerline-raw
-                                                         (all-the-icons-octicon
-                                                          "git-branch"
-                                                          :face face0 :v-adjust 0.05) face0 'r)))
+                            (lhs (list (powerline-raw "%*" face0 'l)
+                                       (when (buffer-file-name (current-buffer))
+                                         (powerline-buffer-id `(mode-line-buffer-id ,face0) 'r))
+                                       (powerline-vc face0 'r)
+                                       (when (and (buffer-file-name (current-buffer)) vc-mode)
+                                         (if (and window-system (not powerline-gui-use-vcs-glyph))
+                                             (powerline-raw
+                                              (all-the-icons-octicon
+                                               "git-branch"
+                                               :face face0 :v-adjust 0.05) face0 'r)))
 
-                                                  (funcall separator-left face0 face1)
+                                       (funcall separator-left face0 face1)
 
-                                                  (when (assoc major-mode all-the-icons-mode-icon-alist)
-                                                    (powerline-raw
-                                                     (all-the-icons-icon-for-mode
-                                                      major-mode
-                                                      :face face1 :height 0.9 :v-adjust 0.01) face1 'l))
-                                                  (powerline-major-mode face1 'l)
-                                                  (when (and (not (equal major-mode 'org-mode))
-                                                             (boundp 'which-function-mode)
-                                                             which-function-mode)
-                                                    (powerline-raw which-func-format face1 'l))
-                                                  (powerline-process face1)
-                                                  (powerline-narrow face1 'l)
-                                                  (powerline-raw " " face1)
+                                       (when (assoc major-mode all-the-icons-mode-icon-alist)
+                                         (powerline-raw
+                                          (all-the-icons-icon-for-mode
+                                           major-mode
+                                           :face face1 :height 0.9 :v-adjust 0.01) face1 'l))
+                                       (powerline-major-mode face1 'l)
+                                       (when (and (not (equal major-mode 'org-mode))
+                                                  (boundp 'which-function-mode)
+                                                  which-function-mode)
+                                         (powerline-raw which-func-format face1 'l))
+                                       (powerline-process face1)
+                                       (powerline-narrow face1 'l)
+                                       (powerline-raw " " face1)
 
-                                                  (funcall separator-left face1 face2)
+                                       (funcall separator-left face1 face2)
 
-                                                  (when powerline-display-buffer-size
-                                                    (powerline-buffer-size face2 'l))
-                                                  (powerline-raw "[" face2 'l)
-                                                  (when (bound-and-true-p nyan-mode)
-                                                    (powerline-raw (list (nyan-create)) face2))
-                                                  (powerline-raw "]" face2)
-                                                  (powerline-raw "%l:%c " face2 'l)))
+                                       (when powerline-display-buffer-size
+                                         (powerline-buffer-size face2 'l))
+                                       (powerline-raw "[" face2 'l)
+                                       (when (bound-and-true-p nyan-mode)
+                                         (powerline-raw (list (nyan-create)) face2))
+                                       (powerline-raw "]" face2)
+                                       (powerline-raw "%l:%c " face2 'l)))
 
-                                       (rhs (list (funcall separator-right face2 face1)
-                                                  (powerline-raw " " face1)
-                                                  (powerline-minor-modes face1 'r)
+                            (rhs (list (funcall separator-right face2 face1)
+                                       (powerline-raw " " face1)
+                                       (powerline-minor-modes face1 'r)
 
-                                                  (funcall separator-right face1 face0)
+                                       (funcall separator-right face1 face0)
 
                                         ;(powerline-raw (sky-color-clock) face0 'l)
-                                                  (when powerline-display-mule-info
-                                                    (powerline-raw mode-line-mule-info face0 'l))
-                                                  (powerline-fill face0 0))))
+                                       (when powerline-display-mule-info
+                                         (powerline-raw mode-line-mule-info face0 'l))
+                                       (powerline-fill face0 0))))
 
-                                  (concat (powerline-render lhs)
-                                          (powerline-fill face2 (powerline-width rhs))
-                                          (powerline-render rhs)))))))
-             :custom-face
-             ;; (powerline-active0 ((t (:background "#191229" :foreground "#888"))))
-             ;; (powerline-active1 ((t (:background "#2d353a" :foreground "#bbb"))))
-             ;; (powerline-active2 ((t (:background "#5c656b" :foreground "#eee"))))
-             :config (my-powerline-theme))
+                       (concat (powerline-render lhs)
+                               (powerline-fill face2 (powerline-width rhs))
+                               (powerline-render rhs)))))))
+  :custom-face
+  ;; (powerline-active0 ((t (:background "#191229" :foreground "#888"))))
+  ;; (powerline-active1 ((t (:background "#2d353a" :foreground "#bbb"))))
+  ;; (powerline-active2 ((t (:background "#5c656b" :foreground "#eee"))))
+  :config (my-powerline-theme))
 
 ;;; end of: Aesthetics
 ;;; Programming languages
 
-;;; Common lisp setup
-(use-package sly
-  :init
-  (add-to-list 'load-path (car (file-expand-wildcards "~/.emacs.d/elpa/sly-*")))
-  :config
-  (setq sly-lisp-implementations '((roswell ("ros" "-Q" "run") :coding-system utf-8-unix))
-        common-lisp-hyperspec-root *my-hyperspec-location*))
+;;; Common lisp setup - I will never touch any other lisp
+(add-hook 'lisp-mode-hook (lambda () (require 'setup-c (user-dir "elisp/setup-cl.el"))))
 
 ;;; C languages
 
-(add-hook 'c-mode-common-hook (lambda ()
-                                (progn (setq-local indent-tabs-mode t)
-                                       (setq-local tab-width 4)
-                                       (setq-local c-basic-offset 4)
-                                       (setq-local fill-column 80))))
-
-;; Cmake files
+;; Cmake support
 (use-package cmake-mode
   :mode ("CMakeLists.txt" ".cmake")
   :hook (cmake-mode . (lambda () (add-to-list 'company-backends 'company-cmake))))
@@ -909,16 +904,8 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
   :after cmake-mode
   :config (cmake-font-lock-activate))
 
-;; Clang format takes care of style control
-(use-package clang-format
-  :bind ("C-c f" . clang-format-region))
-
-;; Better c++14 highlighting
-(use-package modern-cpp-font-lock
-  :hook (c++-mode .  modern-c++-font-lock-global-mode))
-
-;; IDE
-;;(require 'setup-c)
+;; Lazy load configuration
+(add-hook 'c-mode-common-hook (lambda () (require 'setup-c (user-dir "elisp/setup-c.el"))))
 
 ;; Restore sensible GC default
 (add-hook 'emacs-startup-hook (lambda ()
