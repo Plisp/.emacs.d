@@ -1,9 +1,9 @@
 ;;; C/c++ IDE features leveraging ccls TODO setup advanced
 
-(progn (setq-local indent-tabs-mode t)
-       (setq-local tab-width 4)
-       (setq-local c-basic-offset 4)
-       (setq-local fill-column 80))
+;; (setq-local indent-tabs-mode t)
+;; (setq-local tab-width 4)
+;; (setq-local c-basic-offset 4)
+;; (setq-local fill-column 80)
 
 ;; Clang format takes care of style control
 (use-package clang-format
@@ -14,27 +14,15 @@
   :hook (c++-mode .  modern-c++-font-lock-global-mode))
 
 (use-package lsp-mode
-  :hook ((c-mode . lsp-mode)
-         (c++-mode . lsp-mode)))
+  :commands lsp
+  :config (require 'lsp-clients)
+  (setq lsp-auto-guess-root t))
 
 (use-package company-lsp
-  :after (company lsp-mode)
   :config
   (setq company-lsp-enable-recompletion t)
-  (add-to-list 'company-backends 'company-lsp))
+  (push 'company-lsp company-backends))
 
-(use-package lsp-ui
-  :hook (lsp-mode . lsp-ui-mode))
-
-(defun +ccls/enable ()
-  (condition-case nil
-      (lsp-ccls-enable)
-    (user-error nil)))
-
-(use-package ccls
-  :after lsp-mode
-  :config
-  (setq ccls-executable "/usr/local/src/ccls/Release/ccls")
-  (+ccls/enable))
-
-(provide 'setup-c)
+(setq ccls-executable "/usr/local/src/ccls/Release/ccls")
+(use-package ccls :defer t)
+(add-hook 'c++-mode-hook (lambda () (require 'ccls) (lsp)))

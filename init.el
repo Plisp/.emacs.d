@@ -55,7 +55,7 @@
 (setq use-package-always-ensure t)
 
 ;; Always defer unless explicitly specified otherwise
-(setq use-package-always-defer t)
+                                        ;(setq use-package-always-defer t)
 
 ;; No error checking necessary
 (setq use-package-expand-minimally t)
@@ -81,20 +81,17 @@
 (require 'server)
 
 ;; Unmap TAB, RET, ESC from C-i, C-m, C-[ (note: this only works in GUI)
-(defun unmap-keys ()
+(defun unmap-keys (frame)
   "Unmap C-m from RET, C-i from TAB, C-[ from ESC.
 So that I can use the keys elsewhere"
-  (interactive)
-  (if (display-graphic-p)
-      (when (daemonp)
+  (with-selected-frame frame
+    (if (display-graphic-p)
         (progn
           (define-key input-decode-map [?\C-i] [C-i])
           (define-key input-decode-map [?\C-m] [C-m])
           (define-key input-decode-map [?\C-\[] [C-\[])))))
 
-(add-hook 'server-after-make-frame-hook #'unmap-keys)
-
-(when (display-graphic-p) (unmap-keys))
+(add-hook 'after-make-frame-functions #'unmap-keys)
 
 ;; Stolen from emacs redux
 (defun smarter-move-beginning-of-line (arg)
@@ -136,6 +133,9 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 
 ;; Don't use backspace
 (global-set-key (kbd "C-S-d") 'backward-delete-char-untabify)
+
+;; Delete word before point
+(global-set-key (kbd "M-D") 'backward-kill-word)
 
 ;; Remap C-j to replace RET
 (global-set-key (kbd "C-j") 'newline-and-indent)
@@ -185,7 +185,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 
 ;; Help with keybindings
 (use-package which-key
-  :defer 0.5
+  :defer 1
   :diminish
   :config (which-key-mode)
   (setq which-key-idle-delay 0.5))
@@ -208,6 +208,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 (use-package ivy
   :diminish
   :bind (("C-c C-r" . ivy-resume)
+         ("C-x b" . ivy-switch-buffer)  ; Usually the first command I run
          :map ivy-minibuffer-map
          ("C-c C-r" . ivy-reverse-i-search)
          ("C-r" . ivy-previous-line-or-history))
@@ -254,9 +255,10 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
          ("C-r" . counsel-grep-or-swiper)
          ([remap describe-bindings] . counsel-descbinds)
          ([remap apropos-command] . counsel-apropos))
-  :config (setq counsel-rg-base-command "rg -i -M 120 --no-heading --line-number --color never %s ."
-                counsel-grep-base-command "rg -i -M 120 --no-heading --line-number --color never '%s' %s"
-                counsel-git-cmd "rg --files"))
+  :config
+  (setq counsel-rg-base-command "rg -i -M 120 --no-heading --line-number --color never %s ."
+        counsel-grep-base-command "rg -i -M 120 --no-heading --line-number --color never %s %s"
+        counsel-git-cmd "rg --files"))
 
 ;; Counsel-M-x unnecessarily obscures my window
 (use-package smex
@@ -294,6 +296,8 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
       use-dialog-box nil
       x-stretch-cursor t
       word-wrap t
+      ;; advice.el
+      ad-redefinition-action 'accept
       ;; del-sel.el
       delete-selection-mode t
       ;; files.el
@@ -351,7 +355,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
   :disabled t
   :after dired
   :hook (dired-mode . (lambda () (dired-hide-details-mode -1)))
-  :config (setq dired-listing-switches "-alh"))
+  :init (setq dired-listing-switches "-alh"))
 
 ;; Better window resizing: https://github.com/ramnes/move-border
 (use-package move-border :ensure nil
@@ -383,13 +387,13 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 ;;; Editing
 
 ;; Very Large Files
-(use-package vlf :no-require)
+(use-package vlf)
 
 ;; Color code highlighting
 (use-package rainbow-mode)
 
 ;; Edit grep results directly
-(use-package wgrep :no-require)
+(use-package wgrep)
 
 ;; Smart mark
 (use-package smart-region
@@ -397,8 +401,8 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 
 ;; Multiple cursors
 (use-package multiple-cursors
-  :bind (("C-<" . mc/mark-previous-like-this)
-         ("C->" . mc/mark-next-like-this)
+  :bind (("C-<" . mc/mark-previous-like-this-symbol)
+         ("C->" . mc/mark-next-like-this-symbol)
          ("C-+" . mc/mark-all-like-this)
          ("C-c m r" . set-rectangular-region-anchor)
          ("C-c m c" . mc/edit-lines)
@@ -407,8 +411,8 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 
 ;; Fast jumping to places on window
 (use-package avy
-  :bind (("M-g M-g" . avy-goto-end-of-line)
-         ("M-c" . avy-goto-char))
+  :bind (("M-g M-g" . avy-goto-line)
+         ("M-c" . avy-goto-char))       ; Tip: Use M-c RET to goto end of line
   :config (setq avy-timeout-seconds 0.2))
 
 ;; Fast window switching
@@ -435,47 +439,33 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
          ("C-?" . undo-tree-redo))
   :config (global-undo-tree-mode))
 
-;; Show position in buffer
-(use-package nyan-mode
-  :config (nyan-toggle-wavy-trail))
-
 ;; Parentheses management
 (use-package smartparens
   :bind (:map smartparens-mode-map
+              ;; Movement
               ("C-M-a" . sp-beginning-of-sexp)
               ("C-M-e" . sp-end-of-sexp)
-              ("C-<down>" . sp-down-sexp)
-              ("C-<up>"   . sp-up-sexp)
-              ("M-<down>" . sp-backward-down-sexp)
-              ("M-<up>"   . sp-backward-up-sexp)
               ("C-M-f" . sp-forward-sexp)
               ("C-M-b" . sp-backward-sexp)
               ("C-M-n" . sp-next-sexp)
               ("C-M-p" . sp-previous-sexp)
               ("C-S-f" . sp-forward-symbol)
               ("C-S-b" . sp-backward-symbol)
+              ;; Paredit style slurping and barfing
               ("C-)" . sp-forward-slurp-sexp)
               ("C-}" . sp-forward-barf-sexp)
-              ("C-("  . sp-backward-slurp-sexp)
-              ("C-{"  . sp-backward-barf-sexp)
-              ("C-M-t" . sp-transpose-sexp)
-              ("C-M-k" . sp-kill-sexp)
-              ("C-k"   . sp-kill-hybrid-sexp)
-              ("M-k"   . sp-backward-kill-sexp)
-              ("C-M-w" . sp-copy-sexp)
-              ("C-<backspace>" . backward-kill-word)
-              ("M-<backspace>" . sp-backward-kill-word)
-              ([remap comment-line] . sp-comment)
-              ("M-[" . sp-backward-unwrap-sexp)
+              ("C-(" . sp-backward-slurp-sexp)
+              ("C-{" . sp-backward-barf-sexp)
+              ;; Misc operations
               ("M-]" . sp-unwrap-sexp)
-              ("C-x C-t" . sp-transpose-hybrid-sexp)
-              ("C-c ("  . wrap-with-parens)
-              ("C-c ["  . wrap-with-brackets)
-              ("C-c {"  . wrap-with-braces)
-              ("C-c '"  . wrap-with-single-quotes)
-              ("C-c \"" . wrap-with-double-quotes)
-              ("C-c _"  . wrap-with-underscores)
-              ("C-c `"  . wrap-with-back-quotes))
+              ("M-[" . sp-backward-unwrap-sexp)
+              ("C-k"   . sp-kill-hybrid-sexp)
+              ("C-S-k" . sp-backward-kill-sexp)
+              ("C-M-w" . sp-copy-sexp)
+              ("C-M-t" . sp-transpose-hybrid-sexp)
+              ("C-<backspace>" . sp-change-enclosing)
+              ("M-<backspace>" . sp-change-inner)
+              ([remap comment-line] . sp-comment))
   :hook ((emacs-lisp-mode . smartparens-strict-mode)
          (lisp-mode . smartparens-strict-mode)
          (c-mode . smartparens-mode)
@@ -483,7 +473,10 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
          (sly-mrepl-mode  . smartparens-mode)
          (eval-expression-minibuffer-setup . smartparens-mode))
   :config
+  (require 'smartparens-config)
+  (setq sp-show-pair-delay 0)
   (show-smartparens-global-mode)
+  ;; Language specific configuration
   (sp-local-pair '(emacs-lisp-mode lisp-mode) "'" "'" :actions nil)
   (sp-local-pair '(emacs-lisp-mode lisp-mode) "`" "`" :actions nil)
   (sp-local-pair '(c-mode c++-mode) "'" "'" :actions nil)
@@ -493,30 +486,28 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 
 ;; Completion
 (use-package company
+  :defer 2
   :diminish
   :bind (("C-M-/" . company-complete)
          :map company-active-map
-         ;; YCM style
-         ([tab] . company-complete-common-or-cycle)
-         ;; Change 'input' to company candidates (as opposed to input-method)
-         ("C-\\" . company-other-backend)
-         ("C-d" . company-show-doc-buffer)
-         ("C-o" . company-filter-candidates)
-         ;; Jump to completion source
-         ("M-." . company-show-location))
+         ("C-\\" . company-other-backend) ; Change 'input' to company candidates (as opposed to input-method)
+         ("M-." . company-show-location) ; Jump to completion source
+         ("C-o" . company-filter-candidates))
   :config (global-company-mode)
+  (company-tng-configure-default)
   (setq company-idle-delay 0
         company-show-numbers t
         company-tooltip-align-annotations t
         company-minimum-prefix-length 3
         company-dabbrev-other-buffers 'all
-        completion-styles '(initials basic partial-completion)))
+        completion-styles '(initials basic partial-completion)
+        company-require-match nil))
 
 ;; Popup tips for company
 (use-package company-quickhelp
   :after company
   :config (company-quickhelp-mode)
-  (setq company-quickhelp-delay 0.2))
+  (setq company-quickhelp-delay 0.1))
 
 ;; (use-package company-prescient
 ;;   :after (company prescient)
@@ -546,6 +537,13 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 ;; ;; Don't let electric indent lines other than the current
 ;; (setq-default electric-indent-inhibit t)
 
+(use-package nlinum)
+
+(use-package ivy-xref
+  :after ivy
+  :init
+  (setq xref-show-xrefs-function #'ivy-xref-show-xrefs))
+
 (use-package compile :ensure nil
   :config
   (setq compilation-ask-about-save nil
@@ -554,10 +552,12 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 
 ;; Project management
 (use-package projectile
+  :defer 3
   :bind-keymap ("C-c p" . projectile-command-map)
   :config
   (setq projectile-completion-system 'ivy
-        projectile-enable-caching t))
+        projectile-enable-caching t
+        projectile-tags-command "etags -R -f \"%s\" %s \"%s\""))
 
 ;; Ripgrep integration for projectile
 (use-package projectile-ripgrep
@@ -567,12 +567,11 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 ;; Better projectile integration
 (use-package counsel-projectile
   :after (counsel projectile)
-  :config (counsel-projectile-mode)
+  :init (counsel-projectile-mode)
   (setq counsel-projectile-remove-current-buffer t))
 
 ;; Rainbow parentheses
-(use-package rainbow-delimiters
-  :hook (prog-mode . rainbow-delimiters-mode))
+(use-package rainbow-delimiters)
 
 ;; Symbol highlighting+editing
 (use-package symbol-overlay
@@ -590,7 +589,6 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
               ("C-c o o" . origami-show-only-node)
               ("C-c o /" . origami-undo)
               ("C-c o ?" . origami-redo))
-  :hook (prog-mode . origami-mode)
   :config (global-origami-mode)
   (setq origami-show-fold-header t))
 
@@ -632,9 +630,8 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
   :after flycheck
   :bind (:map flycheck-mode-map
               ("C-c ! n" . flycheck-tip-cycle)
-              ("C-c ! p" . flycheck-tip-cycle-reverse))
-  ;; Show nothing in echo area
-  :config (setq flycheck-display-errors-function 'ignore))
+              ("C-c ! p" . flycheck-tip-cycle-reverse)) ;
+  :init (setq flycheck-display-errors-function 'ignore)) ; Show nothing in echo area
 
 ;; (defun semantic-remove-hooks ()
 ;;   "Fix buggy completion when semantic is enabled: https://github.com/syl20bnr/spacemacs/issues/11058"
@@ -770,7 +767,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 
 ;; Fancy icons
 (use-package all-the-icons
-  :defer 0.3
+  :defer 0.4
   :init
   ;; Don't cause garbage collection during startup
   (setq inhibit-compacting-font-caches t))
@@ -783,7 +780,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 ;; Ivy support
 (use-package all-the-icons-ivy
   :after (all-the-icons ivy)
-  :config (all-the-icons-ivy-setup))
+  :init (all-the-icons-ivy-setup))
 
 ;; Color themes
 (use-package doom-themes
@@ -804,7 +801,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 
 ;; Mode line eye candy
 (use-package powerline
-  :defer 0.6
+  :defer 1
   ;;:disabled t
   :after all-the-icons
   :init
@@ -887,13 +884,28 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
   ;; (powerline-active2 ((t (:background "#5c656b" :foreground "#eee"))))
   :config (my-powerline-theme))
 
+;; Show position in buffer
+(use-package nyan-mode
+  :after powerline
+  :config (nyan-toggle-wavy-trail))
+
 ;;; end of: Aesthetics
 ;;; Programming languages
 
 ;;; Common lisp setup - I will never touch any other lisp
-(add-hook 'lisp-mode-hook (lambda () (require 'setup-c (user-dir "elisp/setup-cl.el"))))
+(use-package sly
+  :init
+  (add-to-list 'load-path (car (file-expand-wildcards "~/.emacs.d/elpa/sly-*")))
+  :config
+  (setq sly-lisp-implementations '((roswell ("ros" "-Q" "run") :coding-system utf-8-unix))
+        common-lisp-hyperspec-root *my-hyperspec-location*))
 
 ;;; C languages
+
+;; ;; Lazy load configuration FIXME uncomment after done
+;;(add-hook 'c-mode-common-hook (lambda () (load (user-dir "elisp/setup-c"))))
+
+(load (user-dir "elisp/setup-c"))
 
 ;; Cmake support
 (use-package cmake-mode
@@ -902,18 +914,13 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 
 (use-package cmake-font-lock
   :after cmake-mode
-  :config (cmake-font-lock-activate))
-
-;; Lazy load configuration
-(add-hook 'c-mode-common-hook (lambda () (require 'setup-c (user-dir "elisp/setup-c.el"))))
+  :init (cmake-font-lock-activate))
 
 ;; Restore sensible GC default
-(add-hook 'emacs-startup-hook (lambda ()
-                                (setq gc-cons-threshold 20000000
-                                      gc-cons-percentage 0.1)))
+(add-hook 'emacs-startup-hook (lambda () (setq gc-cons-threshold 20000000
+                                               gc-cons-percentage 0.1)))
 
 ;; Restore file-name-handler-alist to original value
-(add-hook 'emacs-startup-hook (lambda ()
-                                (setq file-name-handler-alist original-file-name-handler-alist)))
+(add-hook 'emacs-startup-hook (lambda () (setq file-name-handler-alist original-file-name-handler-alist)))
 
 ;;; init.el ends here
