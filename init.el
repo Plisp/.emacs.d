@@ -55,7 +55,7 @@
 (setq use-package-always-ensure t)
 
 ;; Always defer unless explicitly specified otherwise
-                                        ;(setq use-package-always-defer t)
+;;(setq use-package-always-defer t)
 
 ;; No error checking necessary
 (setq use-package-expand-minimally t)
@@ -466,12 +466,8 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
               ("C-<backspace>" . sp-change-enclosing)
               ("M-<backspace>" . sp-change-inner)
               ([remap comment-line] . sp-comment))
-  :hook ((emacs-lisp-mode . smartparens-strict-mode)
-         (lisp-mode . smartparens-strict-mode)
-         (c-mode . smartparens-mode)
-         (c++-mode . smartparens-mode)
-         (sly-mrepl-mode  . smartparens-mode)
-         (eval-expression-minibuffer-setup . smartparens-mode))
+  :hook (((emacs-lisp-mode lisp-mode) . smartparens-strict-mode)
+         ((c-mode c++-mode sly-mrepl-mode eval-expression-minibuffer-setup) . smartparens-mode))
   :config
   (require 'smartparens-config)
   (setq sp-show-pair-delay 0)
@@ -498,7 +494,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
   (setq company-idle-delay 0
         company-show-numbers t
         company-tooltip-align-annotations t
-        company-minimum-prefix-length 3
+        company-minimum-prefix-length 2
         company-dabbrev-other-buffers 'all
         completion-styles '(initials basic partial-completion)
         company-require-match nil))
@@ -518,8 +514,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
   ;;:ensure-system-package aspell
   :diminish "Flyspell"
   :bind ("<f7>" . flyspell-buffer)
-  :hook ((org-mode . flyspell-mode)
-         (text-mode . flyspell-mode))
+  :hook ((org-mode text-mode) . flyspell-mode)
   :config
   (setq ispell-program-name "aspell"
         ispell-extra-args '("--sug-mode=ultra")
@@ -578,8 +573,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
   :diminish "symO"
   :bind (("M-i" . symbol-overlay-put)
          ("M-p" . symbol-overlay-jump-prev)
-         ("M-n" . symbol-overlay-jump-next))
-  :config (symbol-overlay-mode))
+         ("M-n" . symbol-overlay-jump-next)))
 
 ;; Code folding
 (use-package origami
@@ -702,7 +696,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
         org-agenda-files '("~/org/misc.org" "~/org/school.org" "~/org/system.org")
         org-agenda-restore-windows-after-quit t
         org-agenda-inhibit-startup nil
-        org-ellipsis " ⬎"
+        org-ellipsis " "
         org-todo-keywords '((sequence "TODO(t)" "IN-PROGRESS(i)" "|" "DONE(d)" "CANCELLED(c)"))
         org-agenda-category-icon-alist `(("misc" ,(list (all-the-icons-faicon "bomb")) nil nil :ascent center)
                                          ("system" ,(list (all-the-icons-material "computer")) nil nil :ascent center)
@@ -721,7 +715,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 (use-package zpresent
   :disabled t
   :config
-  (setq zpresent-bullet "→"
+  (setq zpresent-bullet ""
         zpresent-delete-other-windows t
         zpresent-default-background-color "#073642"
         zpresent-fullscreen-on-zpresentation t))
@@ -733,8 +727,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 ;; Automatic capitalisation
 (use-package captain                    ; TODO set this up properly
   :diminish
-  :hook ((text-mode . (lambda () (setq captain-predicate (lambda () t))))
-         (org-mode . (lambda () (setq captain-predicate (lambda () t)))))
+  :hook ((text-mode org-mode) . (lambda () (setq captain-predicate (lambda () t))))
   :config (global-captain-mode))
 
 ;; Web browsing within emacs
@@ -901,11 +894,23 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
         common-lisp-hyperspec-root *my-hyperspec-location*))
 
 ;;; C languages
+(use-package lsp-mode
+  :commands lsp
+  :config (require 'lsp-clients))
 
-;; ;; Lazy load configuration FIXME uncomment after done
-;;(add-hook 'c-mode-common-hook (lambda () (load (user-dir "elisp/setup-c"))))
+(use-package ccls
+  :init (setq ccls-executable "/usr/local/src/ccls/Release/ccls")
+  :hook ((c-mode c++-mode) . (lambda () (push 'company-lsp company-backends) (require 'ccls) (lsp)))
+  :config
+  (setq ccls-sem-highlight-method 'font-lock))
 
-(load (user-dir "elisp/setup-c"))
+(use-package company-lsp
+  :config
+  (setq company-lsp-enable-recompletion t
+        company-lsp-async t
+        company-lsp-enable-snippet t))
+
+(use-package lsp-ui)
 
 ;; Cmake support
 (use-package cmake-mode
