@@ -55,7 +55,7 @@
 (setq use-package-always-ensure t)
 
 ;; Always defer unless explicitly specified otherwise
-;;(setq use-package-always-defer t)
+(setq use-package-always-defer t)
 
 ;; No error checking necessary
 (setq use-package-expand-minimally t)
@@ -466,8 +466,12 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
               ("C-<backspace>" . sp-change-enclosing)
               ("M-<backspace>" . sp-change-inner)
               ([remap comment-line] . sp-comment))
-  :hook (((emacs-lisp-mode lisp-mode) . smartparens-strict-mode)
-         ((c-mode c++-mode sly-mrepl-mode eval-expression-minibuffer-setup) . smartparens-mode))
+  :hook ((emacs-lisp-mode . smartparens-strict-mode)
+         (lisp-mode . smartparens-strict-mode)
+         (c-mode . smartparens-mode)
+         (c++-mode . smartparens-mode)
+         (sly-mrepl-mode  . smartparens-mode)
+         (eval-expression-minibuffer-setup . smartparens-mode))
   :config
   (require 'smartparens-config)
   (setq sp-show-pair-delay 0)
@@ -490,7 +494,6 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
          ("M-." . company-show-location) ; Jump to completion source
          ("C-o" . company-filter-candidates))
   :config (global-company-mode)
-  (company-tng-configure-default)
   (setq company-idle-delay 0
         company-show-numbers t
         company-tooltip-align-annotations t
@@ -663,6 +666,9 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 ;; Highlight current line
 (add-hook 'prog-mode-hook #'hl-line-mode)
 
+;; Highlight matching parens
+(add-hook 'prog-mode-hook #'show-paren-mode)
+
 ;; Display function in mode line
 (add-hook 'prog-mode-hook #'which-function-mode)
 
@@ -727,7 +733,8 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 ;; Automatic capitalisation
 (use-package captain                    ; TODO set this up properly
   :diminish
-  :hook ((text-mode org-mode) . (lambda () (setq captain-predicate (lambda () t))))
+  :hook ((text-mode . (lambda () (setq captain-predicate (lambda () t))))
+         (org-mode . (lambda () (setq captain-predicate (lambda () t)))))
   :config (global-captain-mode))
 
 ;; Web browsing within emacs
@@ -888,8 +895,8 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 ;;; Common lisp setup - I will never touch any other lisp
 (use-package sly
   :init
-  (add-to-list 'load-path (car (file-expand-wildcards "~/.emacs.d/elpa/sly-*")))
-  :config
+  (add-to-list 'load-path (expand-file-name (car (file-expand-wildcards "~/.emacs.d/elpa/sly-*")))
+  :config)
   (setq sly-lisp-implementations '((roswell ("ros" "-Q" "run") :coding-system utf-8-unix))
         common-lisp-hyperspec-root *my-hyperspec-location*))
 
@@ -900,17 +907,22 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 
 (use-package ccls
   :init (setq ccls-executable "/usr/local/src/ccls/Release/ccls")
-  :hook ((c-mode c++-mode) . (lambda () (push 'company-lsp company-backends) (require 'ccls) (lsp)))
+  :hook ((c-mode . (lambda () (push 'company-lsp company-backends) (require 'ccls) (lsp)))
+         (c++-mode . (lambda () (push 'company-lsp company-backends) (require 'ccls) (lsp))))
   :config
   (setq ccls-sem-highlight-method 'font-lock))
 
 (use-package company-lsp
+  :after lsp-mode
   :config
   (setq company-lsp-enable-recompletion t
         company-lsp-async t
         company-lsp-enable-snippet t))
 
-(use-package lsp-ui)
+(use-package lsp-ui
+  :after cc-mode
+  :bind (("C-M-." . lsp-ui-peek-find-definitions)
+         ("C-M-?" . lsp-ui-peek-find-references)))
 
 ;; Cmake support
 (use-package cmake-mode
