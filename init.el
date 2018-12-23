@@ -26,6 +26,9 @@
 ;; Ignore old bytecode
 (setq load-prefer-newer t)
 
+;; comment out after first startup
+(package-initialize)
+
 ;; Package archives
 (setq package-archives '(("gnu"   . "https://elpa.gnu.org/packages/")
                          ("melpa" . "https://melpa.org/packages/")
@@ -180,8 +183,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 
 ;; Help with finding cursor
 (use-package beacon
-  :diminish "_*_"
-  :config (beacon-mode))
+  :diminish "_*_")
 
 ;; Help with keybindings
 (use-package which-key
@@ -277,7 +279,8 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 ;;; end of: Essential packages
 ;;; General settings
 
-(setq-default hscroll-margin 1
+(setq-default cursor-type '(hbar . 3)
+              hscroll-margin 1
               indent-tabs-mode nil
               indicate-empty-lines t
               ring-bell-function 'ignore
@@ -341,7 +344,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 (set-face-attribute 'default nil :height 124)
 
 ;; Color theme
-(defvar *color-theme* 'doom-one)
+(defvar *color-theme* 'doom-molokai)
 
 ;; Local hyperspec location
 (defvar *my-hyperspec-location* "file://home/plisp/.roswell/lisp/quicklisp/dists/quicklisp/software/clhs-0.6.3/HyperSpec-7-0/HyperSpec/")
@@ -436,6 +439,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 ;; Advanced undo
 (use-package undo-tree
   :bind (("C-x u" . undo-tree-visualize)
+         ("C-/" . undo-tree-undo)
          ("C-?" . undo-tree-redo))
   :config (global-undo-tree-mode))
 
@@ -569,7 +573,8 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
   (setq counsel-projectile-remove-current-buffer t))
 
 ;; Rainbow parentheses
-(use-package rainbow-delimiters)
+(use-package rainbow-delimiters
+  :init (rainbow-delimiters-mode))
 
 ;; Symbol highlighting+editing
 (use-package symbol-overlay
@@ -761,6 +766,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 (tool-bar-mode -1)
 (menu-bar-mode -1)
 (scroll-bar-mode -1)
+(blink-cursor-mode -1)
 
 (setq left-fringe-width 2
       right-fringe-width 6)
@@ -785,6 +791,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 ;; Color themes
 (use-package doom-themes
   :config
+  (setq doom-molokai-brighter-comments t)
   (doom-themes-org-config))
 
 (defun pl-color-theme-setup ()
@@ -907,8 +914,8 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 
 (use-package ccls
   :init (setq ccls-executable "/usr/local/src/ccls/Release/ccls")
-  :hook ((c-mode . (lambda () (push 'company-lsp company-backends) (require 'ccls) (lsp)))
-         (c++-mode . (lambda () (push 'company-lsp company-backends) (require 'ccls) (lsp))))
+  :hook ((c-mode . (lambda () (add-to-list 'company-backends 'company-lsp) (require 'ccls) (require 'cl) (lsp)))
+         (c++-mode . (lambda () (add-to-list 'company-backends 'company-lsp) (require 'ccls) (require 'cl) (lsp))))
   :config
   (setq ccls-sem-highlight-method 'font-lock))
 
