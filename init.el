@@ -26,8 +26,8 @@
 ;; Ignore old bytecode
 (setq load-prefer-newer t)
 
-;; comment out after first startup
-(package-initialize)
+;; ;; comment out after first startup
+;; (package-initialize)
 
 ;; Package archives
 (setq package-archives '(("gnu"   . "https://elpa.gnu.org/packages/")
@@ -80,21 +80,23 @@
 (setq custom-file (user-dir "custom.el"))
 (load custom-file t t)
 
-;; Need to use server-after-make-frame-hook
+;; Needed to use server-after-make-frame-hook
 (require 'server)
 
-;; Unmap TAB, RET, ESC from C-i, C-m, C-[ (note: this only works in GUI)
-(defun unmap-keys (frame)
+(defun unmap-keys ()
   "Unmap C-m from RET, C-i from TAB, C-[ from ESC.
-So that I can use the keys elsewhere"
-  (with-selected-frame frame
-    (if (display-graphic-p)
-        (progn
-          (define-key input-decode-map [?\C-i] [C-i])
-          (define-key input-decode-map [?\C-m] [C-m])
-          (define-key input-decode-map [?\C-\[] [C-\[])))))
+So that they can be used elsewhere"
+  (if (display-graphic-p)
+      (progn
+        (define-key input-decode-map [?\C-i] [C-i])
+        (define-key input-decode-map [?\C-m] [C-m])
+        (define-key input-decode-map [?\C-\[] [C-\[]))))
 
-(add-hook 'after-make-frame-functions #'unmap-keys)
+;; Will run if not using daemon
+(unmap-keys)
+
+;; If using daemon, run after client display loads
+(add-hook 'server-after-make-frame-hook 'unmap-keys)
 
 ;; Stolen from emacs redux
 (defun smarter-move-beginning-of-line (arg)
@@ -280,6 +282,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 ;;; General settings
 
 (setq-default cursor-type '(hbar . 3)
+              fringes-outside-margins t
               hscroll-margin 1
               indent-tabs-mode nil
               indicate-empty-lines t
@@ -362,7 +365,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 
 ;; Better window resizing: https://github.com/ramnes/move-border
 (use-package move-border :ensure nil
-  :disabled t
+  ;;:disabled t
   :bind (("M-S-<up>" . move-border-up)
          ("M-S-<down>" . move-border-down)
          ("M-S-<left>" . move-border-left)
@@ -379,7 +382,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 
 ;; Flip between buffers fast: https://github.com/jrosdahl/iflipb
 (use-package iflipb :ensure nil
-  :disabled t
+  ;;:disabled t
   :bind (([M-tab] . iflipb-next-buffer)
          ([M-iso-lefttab] . iflipb-previous-buffer))) ; Meta-Shift-Tab
 
@@ -426,7 +429,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 ;; Support for some important filetypes
 (use-package markdown-mode :mode (".md" ".markdown"))
 
-(use-package json-mode :mode (".json" ".imp"))
+;;(use-package json-mode :mode (".json" ".imp"))
 
 (use-package asm-mode :ensure nil
   :hook (asm-mode . (lambda () (setq-local tab-stop-list (number-sequence 2 60 2)))))
@@ -508,7 +511,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 
 ;; Popup tips for company
 (use-package company-quickhelp
-  :after company
+  :hook (company-mode . company-quickhelp-mode)
   :config (company-quickhelp-mode)
   (setq company-quickhelp-delay 0.1))
 
@@ -539,7 +542,15 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 ;; ;; Don't let electric indent lines other than the current
 ;; (setq-default electric-indent-inhibit t)
 
-(use-package nlinum)
+(use-package nlinum
+  :hook (prog-mode . nlinum-mode)
+  :config
+  (setq nlinum-format "%d "))
+
+(use-package nlinum-relative
+  ;;:hook (prog-mode . nlinum-relative-on)
+  :config
+  (setq nlinum-relative-redisplay-delay 0))
 
 (use-package ivy-xref
   :after ivy
@@ -574,7 +585,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 
 ;; Rainbow parentheses
 (use-package rainbow-delimiters
-  :init (rainbow-delimiters-mode))
+  :hook (prog-mode . rainbow-delimiters-mode))
 
 ;; Symbol highlighting+editing
 (use-package symbol-overlay
@@ -671,6 +682,9 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 ;; Highlight current line
 (add-hook 'prog-mode-hook #'hl-line-mode)
 
+;; Abbreviate certain keywords as symbols
+(add-hook 'prog-mode-hook #'prettify-symbols-mode)
+
 ;; Highlight matching parens
 (add-hook 'prog-mode-hook #'show-paren-mode)
 
@@ -718,7 +732,6 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 
 ;; fancy bullets
 (use-package org-bullets
-  :after org
   :hook (org-mode . org-bullets-mode)
   :config (setq org-bullets-bullet-list '("◉" "◇" "○" "⚫")))
 
@@ -788,23 +801,35 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
   :after (all-the-icons ivy)
   :init (all-the-icons-ivy-setup))
 
-;; Color themes
+;; Lots of color themes
 (use-package doom-themes
+  :disabled t
   :config
   (setq doom-molokai-brighter-comments t)
   (doom-themes-org-config))
 
+;; Solarized
+(use-package solarized-theme
+  :init
+  (setq solarized-distinct-doc-face t
+        solarized-emphasize-indicators t
+        solarized-scale-org-headlines t))
+
+;; Add a temporary hook if running daemon
 (defun pl-color-theme-setup ()
   (progn
     (load-theme *color-theme* t)
-    (set-face-attribute 'mode-line nil :height 120 :family "Hack")
-    (remove-hook 'server-after-make-frame-hook 'pl-color-theme-setup)))
+    (set-face-attribute 'mode-line nil :height 130 :family "Hack" :underline nil)))
 
-;; Color theme setup
-(when (daemonp) (add-hook 'server-after-make-frame-hook #'pl-color-theme-setup))
+;; Will run if not using daemon
+(when (display-graphic-p) (pl-color-theme-setup))
 
-;; If not running daemon
-(when (display-graphic-p) (load-theme *color-theme* t))
+;; If using daemon, run after client display loads
+(when (daemonp)
+  (add-hook 'server-after-make-frame-hook (lambda ()
+                                            (progn
+                                              (pl-color-theme-setup)
+                                              (remove-hook 'server-after-make-frame-hook 'pl-color-theme-setup)))))
 
 ;; Mode line eye candy
 (use-package powerline
@@ -903,33 +928,34 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 (use-package sly
   :init
   (add-to-list 'load-path (expand-file-name (car (file-expand-wildcards "~/.emacs.d/elpa/sly-*")))
-  :config)
+               :config)
   (setq sly-lisp-implementations '((roswell ("ros" "-Q" "run") :coding-system utf-8-unix))
         common-lisp-hyperspec-root *my-hyperspec-location*))
 
-;;; C languages
-(use-package lsp-mode
-  :commands lsp
-  :config (require 'lsp-clients))
+;; ;;; C languages
+;; (use-package lsp-mode
+;;   :commands lsp
+;;   :config (require 'lsp-clients)
+;;   (setq lsp-prefer-flymake nil))
 
-(use-package ccls
-  :init (setq ccls-executable "/usr/local/src/ccls/Release/ccls")
-  :hook ((c-mode . (lambda () (add-to-list 'company-backends 'company-lsp) (require 'ccls) (require 'cl) (lsp)))
-         (c++-mode . (lambda () (add-to-list 'company-backends 'company-lsp) (require 'ccls) (require 'cl) (lsp))))
-  :config
-  (setq ccls-sem-highlight-method 'font-lock))
+;; (use-package ccls
+;;   :init (setq ccls-executable "/usr/local/src/ccls/Release/ccls")
+;;   :hook ((c-mode . (lambda () (add-to-list 'company-backends 'company-lsp) (require 'ccls) (lsp)))
+;;          (c++-mode . (lambda () (add-to-list 'company-backends 'company-lsp) (require 'ccls) (lsp))))
+;;   :config
+;;   (setq ccls-sem-highlight-method 'font-lock))
 
-(use-package company-lsp
-  :after lsp-mode
-  :config
-  (setq company-lsp-enable-recompletion t
-        company-lsp-async t
-        company-lsp-enable-snippet t))
+;; (use-package company-lsp
+;;   :after lsp-mode
+;;   :config
+;;   (setq company-lsp-enable-recompletion t
+;;         company-lsp-async t
+;;         company-lsp-enable-snippet t))
 
-(use-package lsp-ui
-  :after cc-mode
-  :bind (("C-M-." . lsp-ui-peek-find-definitions)
-         ("C-M-?" . lsp-ui-peek-find-references)))
+;; (use-package lsp-ui
+;;   :after cc-mode
+;;   :bind (("C-M-." . lsp-ui-peek-find-definitions)
+;;          ("C-M-?" . lsp-ui-peek-find-references)))
 
 ;; Cmake support
 (use-package cmake-mode
@@ -942,7 +968,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 
 ;; Restore sensible GC default
 (add-hook 'emacs-startup-hook (lambda () (setq gc-cons-threshold 20000000
-                                               gc-cons-percentage 0.1)))
+                                          gc-cons-percentage 0.1)))
 
 ;; Restore file-name-handler-alist to original value
 (add-hook 'emacs-startup-hook (lambda () (setq file-name-handler-alist original-file-name-handler-alist)))
