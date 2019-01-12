@@ -27,7 +27,7 @@
 (setq load-prefer-newer t)
 
 ;; ;; comment out after first startup
-;; (package-initialize)
+(package-initialize)
 
 ;; Package archives
 (setq package-archives '(("gnu"   . "https://elpa.gnu.org/packages/")
@@ -233,17 +233,9 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 (use-package ivy-hydra
   :after (ivy hydra))
 
-;; ;; another fuzzy package (not quite good enough yet)
-;; (use-package prescient
-
-;;   :init (setq prescient-save-file (user-dir "presc-save.el"))
-;;   :config (prescient-persist-mode))
-
-;; (use-package ivy-prescient
-;;   :after (ivy prescient)
-;;   :config (ivy-prescient-mode)
-;;   (add-to-list 'ivy-prescient-excluded-commands 'counsel-rg)
-;;   (add-to-list 'ivy-prescient-filter-method-keys '("C-c C-f" (literal+initialism . fuzzy))))
+(defun maybe-bind-C-r (file)
+  (unless (equal mode-name "mrepl")
+    (local-set-key (kbd "C-r") 'counsel-grep-or-swiper)))
 
 ;; Minibuffer completion all the things!
 (use-package counsel
@@ -256,10 +248,11 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
          ("M-Y" . counsel-yank-pop)
          ("<f5>" . counsel-unicode-char)
          ("C-s" . counsel-grep-or-swiper)
-         ("C-r" . counsel-grep-or-swiper)
          ([remap describe-bindings] . counsel-descbinds)
          ([remap apropos-command] . counsel-apropos))
-  :config
+  :init
+  ;; little hack to prevent overriding of sly's excellent reverse isearch
+  (add-hook 'after-load-functions #'maybe-bind-C-r)
   (setq counsel-rg-base-command "rg -i -M 120 --no-heading --line-number --color never %s ."
         counsel-grep-base-command "rg -i -M 120 --no-heading --line-number --color never %s %s"
         counsel-git-cmd "rg --files"))
@@ -281,8 +274,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 ;;; end of: Essential packages
 ;;; General settings
 
-(setq-default cursor-type '(hbar . 3)
-              fringes-outside-margins t
+(setq-default fringes-outside-margins t
               hscroll-margin 1
               indent-tabs-mode nil
               indicate-empty-lines t
@@ -515,10 +507,6 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
   :config (company-quickhelp-mode)
   (setq company-quickhelp-delay 0.1))
 
-;; (use-package company-prescient
-;;   :after (company prescient)
-;;   :config (company-prescient-mode))
-
 ;; Spell checking
 (use-package flyspell-correct
   ;;:ensure-system-package aspell
@@ -545,7 +533,8 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 (use-package nlinum
   :hook (prog-mode . nlinum-mode)
   :config
-  (setq nlinum-format "%d "))
+  (setq nlinum-format "%d "
+        nlinum-highlight-current-line t))
 
 (use-package nlinum-relative
   ;;:hook (prog-mode . nlinum-relative-on)
@@ -733,7 +722,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 ;; fancy bullets
 (use-package org-bullets
   :hook (org-mode . org-bullets-mode)
-  :config (setq org-bullets-bullet-list '("◉" "◇" "○" "⚫")))
+  :config (setq org-bullets-bullet-list '("" "" "" "")))
 
 ;; presentations - note darkroom package
 (use-package zpresent
@@ -927,8 +916,8 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 ;;; Common lisp setup - I will never touch any other lisp
 (use-package sly
   :init
-  (add-to-list 'load-path (expand-file-name (car (file-expand-wildcards "~/.emacs.d/elpa/sly-*")))
-               :config)
+  (add-to-list 'load-path (expand-file-name (car (file-expand-wildcards "~/.emacs.d/elpa/sly-*"))))
+  :config
   (setq sly-lisp-implementations '((roswell ("ros" "-Q" "run") :coding-system utf-8-unix))
         common-lisp-hyperspec-root *my-hyperspec-location*))
 
