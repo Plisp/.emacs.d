@@ -26,7 +26,7 @@
 ;; Ignore old bytecode
 (setq load-prefer-newer t)
 
-;; ;; comment out after first startup
+;; comment out after first startup
 (package-initialize)
 
 ;; Package archives
@@ -357,7 +357,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 
 ;; Better window resizing: https://github.com/ramnes/move-border
 (use-package move-border :ensure nil
-  ;;:disabled t
+  :disabled t
   :bind (("M-S-<up>" . move-border-up)
          ("M-S-<down>" . move-border-down)
          ("M-S-<left>" . move-border-left)
@@ -374,7 +374,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 
 ;; Flip between buffers fast: https://github.com/jrosdahl/iflipb
 (use-package iflipb :ensure nil
-  ;;:disabled t
+  :disabled t
   :bind (([M-tab] . iflipb-next-buffer)
          ([M-iso-lefttab] . iflipb-previous-buffer))) ; Meta-Shift-Tab
 
@@ -421,7 +421,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 ;; Support for some important filetypes
 (use-package markdown-mode :mode (".md" ".markdown"))
 
-;;(use-package json-mode :mode (".json" ".imp"))
+(use-package json-mode :mode (".json" ".imp"))
 
 (use-package asm-mode :ensure nil
   :hook (asm-mode . (lambda () (setq-local tab-stop-list (number-sequence 2 60 2)))))
@@ -722,7 +722,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 ;; fancy bullets
 (use-package org-bullets
   :hook (org-mode . org-bullets-mode)
-  :config (setq org-bullets-bullet-list '("" "" "" "")))
+  :config (setq org-bullets-bullet-list '("◉" "◇" "○" "⚫")))
 
 ;; presentations - note darkroom package
 (use-package zpresent
@@ -921,30 +921,30 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
   (setq sly-lisp-implementations '((roswell ("ros" "-Q" "run") :coding-system utf-8-unix))
         common-lisp-hyperspec-root *my-hyperspec-location*))
 
-;; ;;; C languages
-;; (use-package lsp-mode
-;;   :commands lsp
-;;   :config (require 'lsp-clients)
-;;   (setq lsp-prefer-flymake nil))
+;;; C languages
+(use-package lsp-mode
+  :commands lsp
+  :config (require 'lsp-clients)
+  (setq lsp-prefer-flymake nil))
 
-;; (use-package ccls
-;;   :init (setq ccls-executable "/usr/local/src/ccls/Release/ccls")
-;;   :hook ((c-mode . (lambda () (add-to-list 'company-backends 'company-lsp) (require 'ccls) (lsp)))
-;;          (c++-mode . (lambda () (add-to-list 'company-backends 'company-lsp) (require 'ccls) (lsp))))
-;;   :config
-;;   (setq ccls-sem-highlight-method 'font-lock))
+(use-package ccls
+  :init (setq ccls-executable "/usr/local/src/ccls/Release/ccls")
+  :hook ((c-mode . (lambda () (add-to-list 'company-backends 'company-lsp) (require 'ccls) (lsp)))
+         (c++-mode . (lambda () (add-to-list 'company-backends 'company-lsp) (require 'ccls) (lsp))))
+  :config
+  (setq ccls-sem-highlight-method 'font-lock))
 
-;; (use-package company-lsp
-;;   :after lsp-mode
-;;   :config
-;;   (setq company-lsp-enable-recompletion t
-;;         company-lsp-async t
-;;         company-lsp-enable-snippet t))
+(use-package company-lsp
+  :after lsp-mode
+  :config
+  (setq company-lsp-enable-recompletion t
+        company-lsp-async t
+        company-lsp-enable-snippet t))
 
-;; (use-package lsp-ui
-;;   :after cc-mode
-;;   :bind (("C-M-." . lsp-ui-peek-find-definitions)
-;;          ("C-M-?" . lsp-ui-peek-find-references)))
+(use-package lsp-ui
+  :after cc-mode
+  :bind (("C-M-." . lsp-ui-peek-find-definitions)
+         ("C-M-?" . lsp-ui-peek-find-references)))
 
 ;; Cmake support
 (use-package cmake-mode
