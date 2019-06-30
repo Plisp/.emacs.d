@@ -26,13 +26,11 @@
 ;; Ignore old bytecode
 (setq load-prefer-newer t)
 
-;; comment out after first startup
-(package-initialize)
-
 ;; Package archives
 (setq package-archives '(("gnu"   . "https://elpa.gnu.org/packages/")
                          ("melpa" . "https://melpa.org/packages/")
-                         ("org"   . "https://orgmode.org/elpa/")))
+                         ;;("org"   . "https://orgmode.org/elpa/")
+                         ))
 
 ;;; Package configuration management
 (require 'package)
@@ -58,7 +56,7 @@
 (setq use-package-always-ensure t)
 
 ;; Always defer unless explicitly specified otherwise
-(setq use-package-always-defer t)
+;;(setq use-package-always-defer t)
 
 ;; No error checking necessary
 (setq use-package-expand-minimally t)
@@ -86,11 +84,11 @@
 (defun unmap-keys ()
   "Unmap C-m from RET, C-i from TAB, C-[ from ESC.
 So that they can be used elsewhere"
-  (if (display-graphic-p)
-      (progn
-        (define-key input-decode-map [?\C-i] [C-i])
-        (define-key input-decode-map [?\C-m] [C-m])
-        (define-key input-decode-map [?\C-\[] [C-\[]))))
+  (when (display-graphic-p)
+    (progn
+      (define-key input-decode-map [?\C-i] [C-i])
+      (define-key input-decode-map [?\C-m] [C-m])
+      (define-key input-decode-map [?\C-\[] [C-\[]))))
 
 ;; Will run if not using daemon
 (unmap-keys)
@@ -226,8 +224,8 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
         ivy-initial-inputs-alist nil
         ivy-re-builders-alist '((swiper . ivy--regex-plus)
                                 (counsel-descbinds . ivy--regex-plus)
-                                (t . ivy--regex-fuzzy))
-        ivy-ignore-buffers '("\\.org")))
+                                (counsel-rg . ivy--regex-plus)
+                                (t . ivy--regex-fuzzy))))
 
 ;; premade hydras for ivy
 (use-package ivy-hydra
@@ -305,6 +303,8 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
       backup-directory-alist `(("." . ,(user-dir "backups")))
       ;; font-core.el
       global-font-lock-mode t
+      ;; novice.el
+      disabled-command-function nil
       ;; select.el
       select-enable-clipboard t
       select-enable-primary t
@@ -312,7 +312,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
       blink-matching-delay -1
       column-number-mode t
       ;; startup.el
-      initial-scratch-message "Emacs is love, Emacs is life"
+      initial-scratch-message "Emacc"
       ;; vc-hooks.el
       vc-make-backup-files t
       vc-follow-symlinks t)
@@ -342,22 +342,11 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 (defvar *color-theme* 'doom-molokai)
 
 ;; Local hyperspec location
-(defvar *my-hyperspec-location* "file://home/plisp/.roswell/lisp/quicklisp/dists/quicklisp/software/clhs-0.6.3/HyperSpec-7-0/HyperSpec/")
-
-;;; end of: General settings
-;;; EmacsWiki packages - enable as necessary
-
-;; Better dired (note: it is highly recommended to byte compile this)
-;; maintained version: https://www.emacswiki.org/emacs/download/dired%2B.el
-(use-package dired+ :ensure nil
-  :disabled t
-  :after dired
-  :hook (dired-mode . (lambda () (dired-hide-details-mode -1)))
-  :init (setq dired-listing-switches "-alh"))
+(defvar *my-hyperspec-location* "file:/home/plisp/quicklisp/dists/quicklisp/software/clhs-0.6.3/HyperSpec-7-0/HyperSpec/")
 
 ;; Better window resizing: https://github.com/ramnes/move-border
 (use-package move-border :ensure nil
-  :disabled t
+  ;;:disabled t
   :bind (("M-S-<up>" . move-border-up)
          ("M-S-<down>" . move-border-down)
          ("M-S-<left>" . move-border-left)
@@ -374,12 +363,12 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 
 ;; Flip between buffers fast: https://github.com/jrosdahl/iflipb
 (use-package iflipb :ensure nil
-  :disabled t
+  ;;:disabled t
   :bind (([M-tab] . iflipb-next-buffer)
          ([M-iso-lefttab] . iflipb-previous-buffer))) ; Meta-Shift-Tab
 
 (autoload #'dired-jump-other-window "/usr/local/share/emacs/27.0.50/lisp/dired-x.elc")
-(global-set-key (kbd "C-x C-j") 'dired-jump-other-window)
+(global-set-key (kbd "C-x C-j") 'dired-jump)
 
 ;;; end of: EmacsWiki packages
 ;;; Editing
@@ -413,10 +402,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
          ("M-c" . avy-goto-char))       ; Tip: Use M-c RET to goto end of line
   :config (setq avy-timeout-seconds 0.2))
 
-;; Fast window switching
-(use-package ace-window
-  :bind ("M-o" . ace-window)
-  :config (setq aw-keys '(?a ?s ?d ?j ?k ?l)))
+(global-set-key (kbd "M-o") 'other-window)
 
 ;; Support for some important filetypes
 (use-package markdown-mode :mode (".md" ".markdown"))
@@ -476,12 +462,9 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
   (setq sp-show-pair-delay 0)
   (show-smartparens-global-mode)
   ;; Language specific configuration
-  (sp-local-pair '(emacs-lisp-mode lisp-mode) "'" "'" :actions nil)
+  (sp-local-pair '(emacs-lisp-mode lisp-mode sly-mrepl-mode) "'" "'" :actions nil)
   (sp-local-pair '(emacs-lisp-mode lisp-mode) "`" "`" :actions nil)
-  (sp-local-pair '(c-mode c++-mode) "'" "'" :actions nil)
-  (sp-with-modes '(c-mode c++-mode)
-    (sp-local-pair "{" nil :post-handlers '(("||\n[i]" "RET")))
-    (sp-local-pair "/*" "*/" :post-handlers '((" | " "SPC") ("* ||\n[i]" "RET")))))
+  (sp-local-pair '(c-mode c++-mode) "'" "'" :actions nil))
 
 ;; Completion
 (use-package company
@@ -527,9 +510,6 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 ;;; end of: Editing
 ;;; Programming
 
-;; ;; Don't let electric indent lines other than the current
-;; (setq-default electric-indent-inhibit t)
-
 (use-package nlinum
   :hook (prog-mode . nlinum-mode)
   :config
@@ -537,7 +517,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
         nlinum-highlight-current-line t))
 
 (use-package nlinum-relative
-  ;;:hook (prog-mode . nlinum-relative-on)
+  :hook (prog-mode . nlinum-relative-on)
   :config
   (setq nlinum-relative-redisplay-delay 0))
 
@@ -606,19 +586,9 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
   :config (global-git-gutter-mode)
   (setq git-gutter:update-interval 5))
 
-;; Snippets
-
+;; Snippets - only for argument completion purposes
 (use-package yasnippet
-  :bind (("C-c y i" . yas-insert-snippet)
-         ("C-c y h" . yas-describe-tables)
-         ("C-c y r" . yas-reload-all))
-  :hook (c-mode-common . yas-minor-mode)
-  :config
-  (add-to-list 'hippie-expand-try-functions-list 'yas-hippie-try-expand))
-
-;; Snippets for yasnippet
-(use-package yasnippet-snippets
-  :after yasnippet)
+  :hook (c-mode-common . yas-minor-mode))
 
 ;; Linting
 (use-package flycheck
@@ -690,15 +660,14 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 ;;; Org mode and miscellaneous
 
 ;; Note: remember to ensure latest version (from org development repository) is installed for features
-(use-package org :ensure org-plus-contrib :pin org
+(use-package org :ensure org-plus-contrib ; :pin org
   :after all-the-icons
   :bind (("C-c a" . org-agenda)
          ("C-c l" . org-store-link)
          ("C-c c" . org-capture)
          ("C-c b" . org-switchb))
   :hook ((org-mode . org-indent-mode)
-         (org-mode . visual-line-mode)
-         (text-mode . orgstruct-mode))
+         (org-mode . visual-line-mode))
   :config
   (setq org-log-done 'time
         org-use-speed-commands t
@@ -710,7 +679,6 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
         org-agenda-files '("~/org/misc.org" "~/org/school.org" "~/org/system.org")
         org-agenda-restore-windows-after-quit t
         org-agenda-inhibit-startup nil
-        org-ellipsis " "
         org-todo-keywords '((sequence "TODO(t)" "IN-PROGRESS(i)" "|" "DONE(d)" "CANCELLED(c)"))
         org-agenda-category-icon-alist `(("misc" ,(list (all-the-icons-faicon "bomb")) nil nil :ascent center)
                                          ("system" ,(list (all-the-icons-material "computer")) nil nil :ascent center)
@@ -792,9 +760,10 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 
 ;; Lots of color themes
 (use-package doom-themes
-  :disabled t
+  :after org
   :config
-  (setq doom-molokai-brighter-comments t)
+  (setq doom-molokai-comment-bg t
+        doom-molokai-brighter-modeline t)
   (doom-themes-org-config))
 
 ;; Solarized
@@ -913,15 +882,20 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 ;;; end of: Aesthetics
 ;;; Programming languages
 
-;;; Common lisp setup - I will never touch any other lisp
+;;; Common lisp setup
 (use-package sly
   :init
   (add-to-list 'load-path (expand-file-name (car (file-expand-wildcards "~/.emacs.d/elpa/sly-*"))))
   :config
-  (setq sly-lisp-implementations '((roswell ("ros" "-Q" "run") :coding-system utf-8-unix))
+  (setq sly-lisp-implementations '((sbcl ("sbcl" "--dynamic-space-size" "1000") :coding-system utf-8-unix)
+                                   (ccl ("ccl") :coding-system utf-8-unix)
+                                   (roswell ("ros" "-Q" "run") :coding-system utf-8-unix))
         common-lisp-hyperspec-root *my-hyperspec-location*))
 
 ;;; C languages
+
+(add-hook 'c-mode-common-hook #'(lambda () (setq indent-tabs-mode t)))
+
 (use-package lsp-mode
   :commands lsp
   :config (require 'lsp-clients)
