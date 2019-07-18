@@ -140,9 +140,6 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 ;; Delete word before point
 (global-set-key (kbd "M-D") 'backward-kill-word)
 
-;; Remap C-j to replace RET
-(global-set-key (kbd "C-j") 'newline-and-indent)
-
 ;; Char deletion
 (global-set-key (kbd "M-z") 'zap-up-to-char)
 (global-set-key (kbd "M-Z") 'zap-to-char)
@@ -278,7 +275,6 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
               indicate-empty-lines t
               ring-bell-function 'ignore
               tab-width 2
-              truncate-lines t
               ;; ediff-wind.el
               ediff-split-window-function 'split-window-horizontally
               ;; files.el
@@ -762,8 +758,9 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 (use-package doom-themes
   :after org
   :config
-  (setq doom-molokai-comment-bg t
-        doom-molokai-brighter-modeline t)
+  ;; these currently have no effect
+  ;;(setq doom-molokai-comment-bg t
+  ;;      doom-molokai-brighter-modeline t)
   (doom-themes-org-config))
 
 ;; Solarized
