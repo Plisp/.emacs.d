@@ -52,6 +52,17 @@
 ;; dependency of use-package
 (require 'bind-key)
 
+;; searching
+;; (use-package selectrum
+;;   :init (selectrum-mode))
+;; (use-package selectrum-prescient
+;;   :init
+;;   (selectrum-prescient-mode)
+;;   (prescient-persist-mode))
+
+;; (use-package ctrlf
+;;   :init (ctrlf-mode))
+
 ;; Always install packages if not already available
 (setq use-package-always-ensure t)
 
@@ -180,7 +191,8 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 
 ;; Help with finding cursor
 (use-package beacon
-  :diminish "_*_")
+  :diminish "_*_"
+  :config (beacon-mode))
 
 ;; Help with keybindings
 (use-package which-key
@@ -224,15 +236,11 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
                                 (counsel-rg . ivy--regex-plus)
                                 (t . ivy--regex-fuzzy))))
 
-;; premade hydras for ivy
-(use-package ivy-hydra
-  :after (ivy hydra))
-
 (defun maybe-bind-C-r (file)
   (unless (equal mode-name "mrepl")
     (local-set-key (kbd "C-r") 'counsel-grep-or-swiper)))
 
-;; Minibuffer completion all the things!
+;;Minibuffer completion all the things!
 (use-package counsel
   ;;:ensure-system-package ((rg . ripgrep) (ag . the_silver_searcher))
   :bind (("C-x C-f" . counsel-find-file)
@@ -247,7 +255,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
          ([remap apropos-command] . counsel-apropos))
   :init
   ;; little hack to prevent overriding of sly's excellent reverse isearch
-  (add-hook 'after-load-functions #'maybe-bind-C-r)
+  ;;(add-hook 'after-load-functions #'maybe-bind-C-r)
   (setq counsel-rg-base-command "rg -i -M 120 --no-heading --line-number --color never %s ."
         counsel-grep-base-command "rg -i -M 120 --no-heading --line-number --color never %s %s"
         counsel-git-cmd "rg --files"))
@@ -269,7 +277,8 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 ;;; end of: Essential packages
 ;;; General settings
 
-(setq-default fringes-outside-margins t
+(setq-default fill-column 89
+              fringes-outside-margins t
               hscroll-margin 1
               indent-tabs-mode nil
               indicate-empty-lines t
@@ -308,7 +317,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
       blink-matching-delay -1
       column-number-mode t
       ;; startup.el
-      initial-scratch-message "Emacc"
+      initial-scratch-message (shell-command-to-string "fortune | cowsay")
       ;; vc-hooks.el
       vc-make-backup-files t
       vc-follow-symlinks t)
@@ -328,25 +337,29 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 ;; Coding preference for pasted strings
 (setq x-select-request-type '(UTF8_STRING COMPOUND_TEXT TEXT STRING))
 
-;; Fallback font for utf-8 chars
-(set-fontset-font "fontset-default" nil (font-spec :size 90 :name "Symbola"))
-
 ;; Default font
-(set-face-attribute 'default nil :height 124)
+(set-face-attribute 'default nil :height 117 :font "Input Mono")
 
 ;; Color theme
-(defvar *color-theme* 'doom-molokai)
+(defvar *color-theme* 'solarized-dark-high-contrast)
 
 ;; Local hyperspec location
 (defvar *my-hyperspec-location* "file:/home/plisp/quicklisp/dists/quicklisp/software/clhs-0.6.3/HyperSpec-7-0/HyperSpec/")
 
 ;; Better window resizing: https://github.com/ramnes/move-border
-(use-package move-border :ensure nil
-  ;;:disabled t
+(use-package move-border
+  :ensure nil
   :bind (("M-S-<up>" . move-border-up)
          ("M-S-<down>" . move-border-down)
          ("M-S-<left>" . move-border-left)
          ("M-S-<right>" . move-border-right)))
+
+;; (use-package edwina
+;;   :ensure t
+;;   :config
+;;   (setq display-buffer-base-action '(display-buffer-below-selected))
+;;   (edwina-setup-dwm-keys)
+;;   (edwina-mode 1))
 
 ;; Get weather status in mode line: https://github.com/zk-phi/sky-color-clock
 (use-package sky-color-clock :ensure nil
@@ -361,10 +374,11 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 (use-package iflipb :ensure nil
   ;;:disabled t
   :bind (([M-tab] . iflipb-next-buffer)
-         ([M-iso-lefttab] . iflipb-previous-buffer))) ; Meta-Shift-Tab
+         ([M-iso-lefttab] . iflipb-previous-buffer)) ; Meta-Shift-Tab
+  :config (setq iflipb-wrap-around t))
 
 (autoload #'dired-jump-other-window "/usr/local/share/emacs/27.0.50/lisp/dired-x.elc")
-(global-set-key (kbd "C-x C-j") 'dired-jump)
+(global-set-key (kbd "C-x C-j") 'dired-jump-other-window)
 
 ;;; end of: EmacsWiki packages
 ;;; Editing
@@ -401,9 +415,9 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 (global-set-key (kbd "M-o") 'other-window)
 
 ;; Support for some important filetypes
-(use-package markdown-mode :mode (".md" ".markdown"))
+(use-package markdown-mode :mode ("\\.md\\'" "\\.markdown\\'"))
 
-(use-package json-mode :mode (".json" ".imp"))
+(use-package json-mode :mode ("\\.json\\'" "\\.imp\\'"))
 
 (use-package asm-mode :ensure nil
   :hook (asm-mode . (lambda () (setq-local tab-stop-list (number-sequence 2 60 2)))))
@@ -480,11 +494,14 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
         completion-styles '(initials basic partial-completion)
         company-require-match nil))
 
+;; (use-package company-box
+;;   :hook (company-mode . company-box-mode))
+
 ;; Popup tips for company
-(use-package company-quickhelp
-  :hook (company-mode . company-quickhelp-mode)
-  :config (company-quickhelp-mode)
-  (setq company-quickhelp-delay 0.1))
+;; (use-package company-quickhelp
+;;   :hook (company-mode . company-quickhelp-mode)
+;;   :config (company-quickhelp-mode)
+;;   (setq company-quickhelp-delay 0.1))
 
 ;; Spell checking
 (use-package flyspell-correct
@@ -498,29 +515,28 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
         flyspell-issue-welcome-flag nil))
 
 ;; Correct mistakes with ivy
-(use-package flyspell-correct-ivy
-  :after (flyspell ivy)
-  :bind (:map flyspell-mode-map
-              ("C-;" . flyspell-correct-wrapper)))
+;; (use-package flyspell-correct-ivy
+;;   :after (flyspell ivy)
+;;   :bind (:map flyspell-mode-map
+;;               ("C-;" . flyspell-correct-wrapper)))
 
 ;;; end of: Editing
 ;;; Programming
 
 (use-package nlinum
-  :hook (prog-mode . nlinum-mode)
   :config
   (setq nlinum-format "%d "
         nlinum-highlight-current-line t))
 
 (use-package nlinum-relative
-  :hook (prog-mode . nlinum-relative-on)
+  ;;:hook (prog-mode . nlinum-relative-on)
   :config
   (setq nlinum-relative-redisplay-delay 0))
 
-(use-package ivy-xref
-  :after ivy
-  :init
-  (setq xref-show-xrefs-function #'ivy-xref-show-xrefs))
+;; (use-package ivy-xref
+;;   :after ivy
+;;   :init
+;;   (setq xref-show-definitions-function #'ivy-xref-show-defs))
 
 (use-package compile :ensure nil
   :config
@@ -530,10 +546,10 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 
 ;; Project management
 (use-package projectile
-  :defer 3
+  :defer 2
   :bind-keymap ("C-c p" . projectile-command-map)
   :config
-  (setq projectile-completion-system 'ivy
+  (setq ;projectile-completion-system 'ivy TODO
         projectile-enable-caching t
         projectile-tags-command "etags -R -f \"%s\" %s \"%s\""))
 
@@ -555,7 +571,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 ;; Symbol highlighting+editing
 (use-package symbol-overlay
   :diminish "symO"
-  :bind (("M-i" . symbol-overlay-put)
+  :bind (("M-s" . symbol-overlay-put)
          ("M-p" . symbol-overlay-jump-prev)
          ("M-n" . symbol-overlay-jump-next)))
 
@@ -570,11 +586,9 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
   :config (global-origami-mode)
   (setq origami-show-fold-header t))
 
-;; Magit TODO setup
+;; Magit
 (use-package magit
-  :bind ("C-c g" . magit-status)
-  :config
-  (setq magit-completing-read-function 'ivy-completing-read))
+  :bind ("C-c g" . magit-status))
 
 ;; Display git status in fringe
 (use-package git-gutter
@@ -632,7 +646,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 (add-hook 'prog-mode-hook
           (lambda ()
             (when (not (derived-mode-p 'cmake-mode)) ; Highlighting in cmake-mode interferes with font lock
-              (font-lock-add-keywords nil '(("\\<\\(FIXME\\|TODO\\)" 1 font-lock-warning-face t))))))
+              (font-lock-add-keywords nil '(("\\<\\(XXX\\|TODO\\)" 1 font-lock-warning-face t))))))
 
 ;; Highlight current line
 (add-hook 'prog-mode-hook #'hl-line-mode)
@@ -642,6 +656,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 
 ;; Highlight matching parens
 (add-hook 'prog-mode-hook #'show-paren-mode)
+(setq show-paren-delay 0)
 
 ;; Display function in mode line
 (add-hook 'prog-mode-hook #'which-function-mode)
@@ -725,6 +740,15 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
   :bind (("C-c h o" . link-hint-open-link)
          ("C-c h y" . link-hint-copy-link)))
 
+(use-package auctex
+  :hook ((LaTeX-mode . visual-line-mode)
+         (LaTeX-mode . flyspell-mode)
+         (LaTeX-mode . LaTeX-math-mode))
+  :config
+  (setq TeX-auto-save t
+        TeX-parse-self t)
+  (setq-default TeX-master nil))
+
 ;;; end of: Org mode and miscellaneous
 ;;; Aesthetics
 
@@ -750,14 +774,14 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
   :hook (dired-mode . all-the-icons-dired-mode))
 
 ;; Ivy support
-(use-package all-the-icons-ivy
-  :after (all-the-icons ivy)
-  :init (all-the-icons-ivy-setup))
+;; (use-package all-the-icons-ivy
+;;   :after (all-the-icons ivy)
+;;   :init (all-the-icons-ivy-setup))
 
 ;; Lots of color themes
 (use-package doom-themes
-  :after org
   :config
+  (setq doom-Iosvkem-comment-bg t)
   ;; these currently have no effect
   ;;(setq doom-molokai-comment-bg t
   ;;      doom-molokai-brighter-modeline t)
@@ -773,8 +797,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 ;; Add a temporary hook if running daemon
 (defun pl-color-theme-setup ()
   (progn
-    (load-theme *color-theme* t)
-    (set-face-attribute 'mode-line nil :height 130 :family "Hack" :underline nil)))
+    (load-theme *color-theme* t)))
 
 ;; Will run if not using daemon
 (when (display-graphic-p) (pl-color-theme-setup))
@@ -843,14 +866,15 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 
                                        (funcall separator-left face1 face2)
 
-                                       (when powerline-display-buffer-size
-                                         (powerline-buffer-size face2 'l))
+
+                                       (powerline-raw "%l:%c " face2 'l)
                                        (powerline-raw "[" face2 'l)
                                        (when (bound-and-true-p nyan-mode)
                                          (powerline-raw (list (nyan-create)) face2))
                                        (powerline-raw "]" face2)
-                                       (powerline-raw "%l:%c " face2 'l)))
-
+                                       (when powerline-display-buffer-size
+                                         (powerline-buffer-size face2 'l)))
+)
                             (rhs (list (funcall separator-right face2 face1)
                                        (powerline-raw " " face1)
                                        (powerline-minor-modes face1 'r)
@@ -873,19 +897,39 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 
 ;; Show position in buffer
 (use-package nyan-mode
+  :init (nyan-mode)
   :after powerline
-  :config (nyan-toggle-wavy-trail))
+  :config
+  ;;(nyan-start-music)
+  ;;(nyan-start-animation)
+  (nyan-toggle-wavy-trail))
 
 ;;; end of: Aesthetics
 ;;; Programming languages
 
 ;;; Common lisp setup
+
+(defvar *my-fasldir* "fasl/")
+
+(defun my-sly-compile-file ()
+  (interactive)
+  (let* ((rootdir (projectile-project-root))
+         (fasldir (concat (projectile-project-root) *my-fasldir*))
+         (relative-dir (string-trim-right
+                        (substring (buffer-file-name (current-buffer)) (length rootdir))
+                        "[^/]+"))
+         (file-fasl-dir (concat fasldir relative-dir)))
+    (make-directory file-fasl-dir t)
+    (setq sly-compile-file-options (list :fasl-directory file-fasl-dir))
+    (sly-compile-file)))
+
 (use-package sly
-  :init
-  (add-to-list 'load-path (expand-file-name (car (file-expand-wildcards "~/.emacs.d/elpa/sly-*"))))
+  :bind (:map sly-editing-mode-map ("C-c C-k" . #'my-sly-compile-file))
   :config
   (setq sly-lisp-implementations '((sbcl ("sbcl" "--dynamic-space-size" "1000") :coding-system utf-8-unix)
+                                   (ecl ("ecl") :coding-system utf-8-unix)
                                    (ccl ("ccl") :coding-system utf-8-unix)
+
                                    (roswell ("ros" "-Q" "run") :coding-system utf-8-unix))
         common-lisp-hyperspec-root *my-hyperspec-location*))
 
@@ -894,16 +938,17 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 (add-hook 'c-mode-common-hook #'(lambda () (setq indent-tabs-mode t)))
 
 (use-package lsp-mode
-  :commands lsp
-  :config (require 'lsp-clients)
+  :hook ((c-mode . (lambda () (add-to-list 'company-backends 'company-capf) (require 'lsp-clangd) (lsp)))
+         (c++-mode . (lambda () (add-to-list 'company-backends 'company-capf) (require 'lsp-clangd) (lsp))))
+  :config
   (setq lsp-prefer-flymake nil))
 
-(use-package ccls
-  :init (setq ccls-executable "/usr/local/src/ccls/Release/ccls")
-  :hook ((c-mode . (lambda () (add-to-list 'company-backends 'company-lsp) (require 'ccls) (lsp)))
-         (c++-mode . (lambda () (add-to-list 'company-backends 'company-lsp) (require 'ccls) (lsp))))
-  :config
-  (setq ccls-sem-highlight-method 'font-lock))
+
+;; (use-package ccls
+;;   :hook ((c-mode . (lambda () (add-to-list 'company-backends 'company-lsp) (require 'lsp-clangd) (lsp)))
+;;          (c++-mode . (lambda () (add-to-list 'company-backends 'company-lsp) (require 'lsp-clangd) (lsp))))
+;;   :config
+;;   (setq ccls-sem-highlight-method 'font-lock))
 
 (use-package company-lsp
   :after lsp-mode
