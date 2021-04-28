@@ -3,7 +3,7 @@
 ;;; Commentary:
 ;;; This file contains the majority of my configuration
 
-;; Copyleft (c) 2018 Plisp
+;; Copyleft (c) 2018,2019,2020,2021 plisp
 ;;
 ;; Terms and Conditions
 ;; This program is free software: you can redistribute it and/or modify
@@ -283,11 +283,13 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
               indent-tabs-mode nil
               indicate-empty-lines t
               ring-bell-function 'ignore
-              tab-width 2
+              tab-width 4
               ;; ediff-wind.el
               ediff-split-window-function 'split-window-horizontally
               ;; files.el
-              version-control t)
+              version-control t
+              ;; cc-vars.el
+              c-basic-offset 4)
 
 (setq auto-window-vscroll nil
       inhibit-startup-screen t
@@ -341,7 +343,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 (set-face-attribute 'default nil :height 117 :font "Input Mono")
 
 ;; Color theme
-(defvar *color-theme* 'solarized-dark-high-contrast)
+(defvar *color-theme* 'doom-solarized-dark)
 
 ;; Local hyperspec location
 (defvar *my-hyperspec-location* "file:/home/plisp/quicklisp/dists/quicklisp/software/clhs-0.6.3/HyperSpec-7-0/HyperSpec/")
