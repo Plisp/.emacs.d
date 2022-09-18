@@ -465,6 +465,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
               ([remap comment-line] . sp-comment))
   :hook ((emacs-lisp-mode . smartparens-strict-mode)
          (lisp-mode . smartparens-strict-mode)
+         (clojure-mode . smartparens-strict-mode)
          (c-mode . smartparens-mode)
          (c++-mode . smartparens-mode)
          (sly-mrepl-mode  . smartparens-mode)
@@ -669,6 +670,12 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 ;; Automatically make scripts executable
 (add-hook 'after-save-hook #'executable-make-buffer-file-executable-if-script-p)
 
+(use-package elpy
+  :ensure t
+  :defer t
+  :init
+  (advice-add 'python-mode :before 'elpy-enable))
+
 ;;; end of: Programming
 ;;; Org mode and miscellaneous
 
@@ -718,12 +725,12 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 (use-package academic-phrases
   :after org)
 
-;; Automatic capitalisation
-(use-package captain                    ; TODO set this up properly
-  :diminish
-  :hook ((text-mode . (lambda () (setq captain-predicate (lambda () t))))
-         (org-mode . (lambda () (setq captain-predicate (lambda () t)))))
-  :config (global-captain-mode))
+;; ;; Automatic capitalisation
+;; (use-package captain                    ; TODO set this up properly
+;;   :diminish
+;;   :hook ((text-mode . (lambda () (setq captain-predicate (lambda () t))))
+;;          (org-mode . (lambda () (setq captain-predicate (lambda () t)))))
+;;   :config (global-captain-mode))
 
 ;; Web browsing within emacs
 (use-package w3m
@@ -746,10 +753,11 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
   :hook ((LaTeX-mode . visual-line-mode)
          (LaTeX-mode . flyspell-mode)
          (LaTeX-mode . LaTeX-math-mode))
-  :config
+  :init
   (setq TeX-auto-save t
         TeX-parse-self t)
-  (setq-default TeX-master nil))
+  (setq-default TeX-master nil
+                TeX-command-extra-options "-shell-escape"))
 
 ;;; end of: Org mode and miscellaneous
 ;;; Aesthetics
@@ -892,9 +900,9 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
                                (powerline-fill face2 (powerline-width rhs))
                                (powerline-render rhs)))))))
   :custom-face
-  ;; (powerline-active0 ((t (:background "#191229" :foreground "#888"))))
-  ;; (powerline-active1 ((t (:background "#2d353a" :foreground "#bbb"))))
-  ;; (powerline-active2 ((t (:background "#5c656b" :foreground "#eee"))))
+  (powerline-active0 ((t (:background "#191229" :foreground "#888"))))
+  (powerline-active1 ((t (:background "#2d353a" :foreground "#bbb"))))
+  (powerline-active2 ((t (:background "#5c656b" :foreground "#eee"))))
   :config (my-powerline-theme))
 
 ;; Show position in buffer
@@ -934,6 +942,15 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 
                                    (roswell ("ros" "-Q" "run") :coding-system utf-8-unix))
         common-lisp-hyperspec-root *my-hyperspec-location*))
+
+(use-package cider)
+
+;;; functional
+(add-to-list 'load-path (user-dir "elisp/idris2-mode"))
+(require 'idris2-mode)
+(setq idris2-interpreter-path "/usr/local/bin/idris2")
+
+(use-package haskell-mode)
 
 ;;; C languages
 
@@ -979,5 +996,13 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 
 ;; Restore file-name-handler-alist to original value
 (add-hook 'emacs-startup-hook (lambda () (setq file-name-handler-alist original-file-name-handler-alist)))
+
+
+;;(use-package evil
+;;  :after undo-tree
+;;  :init
+;;  (setq evil-undo-system 'undo-tree)
+;;  (evil-mode)
+;;  :config (add-hook 'evil-local-mode-hook 'turn-on-undo-tree-mode))
 
 ;;; init.el ends here

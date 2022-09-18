@@ -1,0 +1,3 @@
+[submodule "elisp/idris2-mode"]
+	path = elisp/idris2-mode
+	url = https://github.com/idris-community/idris2-mode
