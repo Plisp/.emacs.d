@@ -308,6 +308,7 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
       save-silently t
       auto-save-default nil
       backup-directory-alist `(("." . ,(user-dir "backups")))
+      make-backup-files nil
       ;; font-core.el
       global-font-lock-mode t
       ;; novice.el
@@ -434,7 +435,9 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
   :bind (("C-x u" . undo-tree-visualize)
          ("C-/" . undo-tree-undo)
          ("C-?" . undo-tree-redo))
-  :config (global-undo-tree-mode))
+  :config
+  (setq undo-tree-auto-save-history nil)
+  (global-undo-tree-mode))
 
 ;; Parentheses management
 (use-package smartparens
@@ -946,10 +949,6 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 (use-package cider)
 
 ;;; functional
-(add-to-list 'load-path (user-dir "elisp/idris2-mode"))
-(require 'idris2-mode)
-(setq idris2-interpreter-path "/usr/local/bin/idris2")
-
 (use-package haskell-mode)
 
 ;;; C languages
