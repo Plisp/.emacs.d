@@ -212,7 +212,6 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
   :bind ("C-S-s" . swiper-all)
   :config
   (setq case-fold-search t
-        swiper-action-recenter t
         swiper-goto-start-of-match t))
 
 ;; Minibuffer completion frontend
@@ -341,10 +340,10 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 (setq x-select-request-type '(UTF8_STRING COMPOUND_TEXT TEXT STRING))
 
 ;; Default font
-(set-face-attribute 'default nil :height 117 :font "Input Mono")
+(set-face-attribute 'default nil :height 117 :font "DejaVu Sans Mono")
 
 ;; Color theme
-(defvar *color-theme* 'doom-solarized-dark)
+(defvar *color-theme* 'solarized-dark)
 
 ;; Local hyperspec location
 (defvar *my-hyperspec-location* "file:/home/plisp/quicklisp/dists/quicklisp/software/clhs-0.6.3/HyperSpec-7-0/HyperSpec/")
@@ -800,13 +799,6 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
   ;;      doom-molokai-brighter-modeline t)
   (doom-themes-org-config))
 
-;; Solarized
-(use-package solarized-theme
-  :init
-  (setq solarized-distinct-doc-face t
-        solarized-emphasize-indicators t
-        solarized-scale-org-headlines t))
-
 ;; Add a temporary hook if running daemon
 (defun pl-color-theme-setup ()
   (progn
@@ -920,6 +912,26 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
 ;;; end of: Aesthetics
 ;;; Programming languages
 
+(use-package hol-mode
+  :load-path "~/devel/HOL4/tools/"
+  :mode ("\\Script.sml\\'" . holscript-mode)
+  :interpreter "hol"
+  :config
+  (set-face-attribute 'hol-free-variable nil :foreground "#268bd2")
+  (set-face-attribute 'holscript-quoted-material nil :foreground "#93a1a1"))
+
+(use-package sml-mode)
+
+;;; agda
+
+(defvar *agda2-dir* (file-name-directory
+                     (let ((coding-system-for-read 'utf-8))
+                       (shell-command-to-string "agda-mode locate"))))
+
+(use-package agda2-mode
+  :load-path *agda2-dir*
+  :mode ("\\.agda\\'" "\\.lagda\\'"))
+
 ;;; Common lisp setup
 
 (defvar *my-fasldir* "fasl/")
@@ -994,8 +1006,6 @@ Equivalent to `set-mark-command' when `transient-mark-mode' is disabled"
                                           gc-cons-percentage 0.1)))
 
 ;; Restore file-name-handler-alist to original value
-(add-hook 'emacs-startup-hook (lambda () (setq file-name-handler-alist original-file-name-handler-alist)))
-
 
 ;;(use-package evil
 ;;  :after undo-tree
